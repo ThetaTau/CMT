@@ -2863,17 +2863,21 @@ def test_officer_add_view_non_officer_redirected(auto_login_user):
 @pytest.mark.django_db
 @override_settings(DEBUG=True)  # superusers bypass RequireSuperuser2FAMiddleware only when DEBUG
 def test_national_officer_add_creates_role(auto_login_user, user_factory):
-    """A superuser can add a national officer; the education-LMS sync is stubbed."""
+    """A superuser can add a national officer, who is enrolled in the role's Open edX courses."""
     from unittest import mock
 
     from django.utils import timezone
 
+    from thetatauCMT.trainings.models import EdCourse
     from thetatauCMT.users.models import UserRoleChange
 
     client, user = auto_login_user()
     user.is_superuser = True
     user.save()
     member = user_factory.create()
+    course = EdCourse.objects.create(
+        course_id="course-v1:ThetaTau+TT702+council", title="Council", assign_to_roles=["grand regent"]
+    )
     start = timezone.now().date()
     end = start + timezone.timedelta(days=365)
     url = reverse("forms:natoff_add")
@@ -2888,6 +2892,68 @@ def test_national_officer_add_creates_role(auto_login_user, user_factory):
     assert response.status_code == 200
     assert UserRoleChange.objects.filter(user=member, role="grand regent").exists()
     add_ed.assert_called_once()
+    assert course.course_id in add_ed.call_args.kwargs["courses"]
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)  # superusers bypass RequireSuperuser2FAMiddleware only when DEBUG
+def test_national_officer_add_survives_an_open_edx_outage(auto_login_user, user_factory):
+    """The role is saved and the admin is warned when Open edX cannot be reached."""
+    from unittest import mock
+
+    from django.contrib.messages import get_messages
+    from django.utils import timezone
+
+    from thetatauCMT.users.models import UserRoleChange
+
+    client, user = auto_login_user()
+    user.is_superuser = True
+    user.save()
+    member = user_factory.create()
+    start = timezone.now().date()
+    data = {
+        "user": str(member.pk),
+        "role": "grand regent",
+        "start": start.strftime("%m/%d/%Y"),
+        "end": (start + timezone.timedelta(days=365)).strftime("%m/%d/%Y"),
+    }
+    with mock.patch("thetatauCMT.forms.views.Training.add_user_ed", side_effect=ConnectionError("down")):
+        response = client.post(reverse("forms:natoff_add"), data)
+    assert response.status_code == 302
+    assert UserRoleChange.objects.filter(user=member, role="grand regent").exists()
+    msgs = [str(m) for m in get_messages(response.wsgi_request)]
+    assert any("could not be enrolled in Open edX" in m for m in msgs)
+
+
+@pytest.mark.django_db
+def test_officer_add_enrolls_member_in_the_roles_open_edx_courses(auto_login_user, user_factory):
+    """A chapter role with Open edX courses configured enrolls the new officer in them."""
+    from unittest import mock
+
+    from django.utils import timezone
+
+    from thetatauCMT.trainings.models import EdCourse
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    course = EdCourse.objects.create(
+        course_id="course-v1:ThetaTau+TT701+events", title="Events", assign_to_roles=["events chair"]
+    )
+    start = timezone.now().date()
+    data = {
+        # A committee-chair role skips the Vector sync, Treasurer policy and New Officers email.
+        "user": str(member.pk),
+        "role": "events chair",
+        "start": start.strftime("%m/%d/%Y"),
+        "end": (start + timezone.timedelta(days=365)).strftime("%m/%d/%Y"),
+    }
+    with mock.patch("thetatauCMT.forms.views.Training.add_user_ed") as add_ed:
+        response = client.post(reverse("forms:officer_add"), data, follow=True)
+    assert response.status_code == 200
+    add_ed.assert_called_once()
+    assert add_ed.call_args.args == (member,)
+    assert add_ed.call_args.kwargs["courses"] == [course.course_id]
 
 
 # ─── InitiationView POST with session and empty formsets ─────────────────────

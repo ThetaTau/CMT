@@ -2,7 +2,9 @@ import datetime
 
 import pytest
 from django.contrib import admin as dj_admin
+from django.contrib import messages as dj_messages
 from django.contrib.auth.models import Group
+from django.http import HttpResponse
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -10,7 +12,7 @@ from django.utils import timezone
 from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.forms.tests.factories import InitiationFactory
 from thetatauCMT.trainings.admin import AssignTrainingMixin
-from thetatauCMT.trainings.models import COMMUNITY_EDU_COURSE_ID, COMMUNITY_EDU_COURSE_TITLE, Training
+from thetatauCMT.trainings.models import COMMUNITY_EDU_COURSE_ID, COMMUNITY_EDU_COURSE_TITLE, EdCourse, Training
 from thetatauCMT.users.models import User, UserStatusChange
 from thetatauCMT.users.tests.factories import UserFactory
 
@@ -245,6 +247,119 @@ def test_assign_training_admin_action_survives_user_error(user_factory, rf, monk
     assert response.status_code == 302  # redirects back to the changelist
     assert processed == [user2.pk]  # user2 still processed after user1 failed
     assert any("failed" in msg.lower() for msg, _level in admin_instance.recorded_messages)
+
+
+def _ed_assign_request(rf, users, ed_courses):
+    return rf.post(
+        "/admin/users/user/",
+        data={
+            "apply": "1",
+            "_selected_action": [user.pk for user in users],
+            "training_system": "ED.thetatau",
+            "extra_group": "new_group",
+            "new_group": "",
+            "ed_courses": [course.pk for course in ed_courses],
+        },
+    )
+
+
+@pytest.mark.django_db
+def test_assign_training_admin_action_enrolls_users_in_the_chosen_ed_courses(user_factory, rf, monkeypatch):
+    """ED.thetatau enrolls each selected user in only the ticked courses, with one token for the batch."""
+    user1, user2 = user_factory.create(), user_factory.create()
+    chosen = EdCourse.objects.create(course_id="course-v1:ThetaTau+TT601+chosen", title="Chosen")
+    EdCourse.objects.create(course_id="course-v1:ThetaTau+TT602+other", title="Other")
+    monkeypatch.setattr(Training, "get_extra_groups", staticmethod(lambda: []))
+    tokens = []
+
+    def fake_token():
+        tokens.append("token")
+        return {"Authorization": "JWT t"}
+
+    monkeypatch.setattr(Training, "_ed_authenticate_header", staticmethod(fake_token))
+    calls = {}
+
+    def fake_enroll(user, courses=None, header=None, request=None):
+        calls[user.pk] = (courses, header)
+
+    monkeypatch.setattr(Training, "enroll_user_ed", staticmethod(fake_enroll))
+    admin_instance = _RecordingUserAdmin(User, dj_admin.sites.AdminSite())
+
+    response = admin_instance.assign_training(
+        _ed_assign_request(rf, [user1, user2], [chosen]), User.objects.filter(pk__in=[user1.pk, user2.pk])
+    )
+
+    assert response.status_code == 302
+    assert tokens == ["token"]
+    assert calls == {
+        user1.pk: ([chosen.course_id], {"Authorization": "JWT t"}),
+        user2.pk: ([chosen.course_id], {"Authorization": "JWT t"}),
+    }
+
+
+@pytest.mark.django_db
+def test_assign_training_admin_action_needs_an_ed_course(user_factory, rf, monkeypatch):
+    user = user_factory.create()
+    monkeypatch.setattr(Training, "get_extra_groups", staticmethod(lambda: []))
+    monkeypatch.setattr(Training, "enroll_user_ed", staticmethod(lambda *a, **k: pytest.fail("must not enroll")))
+    rendered = {}
+
+    def fake_render(request, template_name, context):
+        rendered.update(context)
+        return HttpResponse("form")
+
+    monkeypatch.setattr("thetatauCMT.trainings.admin.render", fake_render)
+    admin_instance = _RecordingUserAdmin(User, dj_admin.sites.AdminSite())
+
+    response = admin_instance.assign_training(_ed_assign_request(rf, [user], []), User.objects.filter(pk=user.pk))
+
+    assert response.status_code == 200
+    assert "ed_courses" in rendered["form"].errors
+
+
+@pytest.mark.django_db
+def test_assign_training_admin_action_reports_open_edx_sign_in_failure_once(user_factory, rf, monkeypatch):
+    user1, user2 = user_factory.create(), user_factory.create()
+    course = EdCourse.objects.create(course_id="course-v1:ThetaTau+TT603+any", title="Any")
+    monkeypatch.setattr(Training, "get_extra_groups", staticmethod(lambda: []))
+
+    def no_token():
+        raise ValueError("bad credentials")
+
+    monkeypatch.setattr(Training, "_ed_authenticate_header", staticmethod(no_token))
+    monkeypatch.setattr(Training, "enroll_user_ed", staticmethod(lambda *a, **k: pytest.fail("must not enroll")))
+    admin_instance = _RecordingUserAdmin(User, dj_admin.sites.AdminSite())
+
+    response = admin_instance.assign_training(
+        _ed_assign_request(rf, [user1, user2], [course]), User.objects.filter(pk__in=[user1.pk, user2.pk])
+    )
+
+    assert response.status_code == 302
+    assert [level for _msg, level in admin_instance.recorded_messages] == [dj_messages.ERROR]
+    assert "nobody was enrolled" in admin_instance.recorded_messages[0][0]
+
+
+@pytest.mark.django_db
+def test_ed_course_admin_form_keeps_role_names_that_contain_commas():
+    from thetatauCMT.trainings.forms import EdCourseAdminForm
+
+    roles = ["diversity, equity, and inclusion chair", "regent"]
+    form = EdCourseAdminForm(
+        data={"course_id": "course-v1:ThetaTau+TT901+dei", "title": "DEI", "active": "on", "assign_to_roles": roles}
+    )
+
+    assert form.is_valid(), form.errors
+    assert EdCourse.objects.get(pk=form.save().pk).assign_to_roles == roles
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("course_id", ["TT101", "course-v1:ThetaTau+TT101", "course-v1:A+B+C,course-v1:D+E+F"])
+def test_ed_course_admin_form_rejects_anything_but_one_course_run_key(course_id):
+    from thetatauCMT.trainings.forms import EdCourseAdminForm
+
+    form = EdCourseAdminForm(data={"course_id": course_id, "title": "Bad", "active": "on"})
+
+    assert "course_id" in form.errors
 
 
 @pytest.mark.django_db

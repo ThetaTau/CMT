@@ -7,14 +7,16 @@ from time import sleep
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.postgres.fields import ArrayField
 from django.core.mail import send_mail
+from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models import Q
 from django.http import Http404
 from django.utils import timezone
 
 import core.requests as requests
-from core.models import TimeStampedModel
+from core.models import ALL_ROLES_CHOICES, TimeStampedModel
 from thetatauCMT.users.models import User
 
 logger = logging.getLogger(__name__)
@@ -117,6 +119,66 @@ def _post_lms_json(url, *, description="Vector LMS request", attempts=3, initial
 # computing chapter completion percentages (`trainings.services`).
 COMMUNITY_EDU_COURSE_ID = "5d7b72cf-7e22-43a3-a4aa-628d8ee6c1a9"
 COMMUNITY_EDU_COURSE_TITLE = "CommunityEdu: Fraternity & Sorority Life"
+
+
+class EdCourse(TimeStampedModel):
+    """An Open edX (``settings.ED_HOST``) course run CMT can enroll members in.
+
+    Vector assigns courses through its own position rules; Open edX has nothing
+    equivalent, so the rules live here and CMT applies them itself.
+    """
+
+    course_id = models.CharField(
+        "Course run key",
+        max_length=255,
+        unique=True,
+        validators=[
+            RegexValidator(
+                r"^course-v1:[^+\s,]+\+[^+\s,]+\+[^+\s,]+$",
+                "Use the Open edX course run key, for example course-v1:ThetaTau+TT101+intro.",
+            )
+        ],
+        help_text="Copy it from the course URL in Open edX, for example course-v1:ThetaTau+TT101+intro.",
+    )
+    title = models.CharField(max_length=500, help_text="The name CMT shows for this course.")
+    active = models.BooleanField(
+        default=True,
+        help_text="Only active courses can be assigned, by hand or automatically.",
+    )
+    assign_to_all_members = models.BooleanField(
+        "Assign to every member",
+        default=False,
+        help_text=(
+            "Enroll each new member when their PNM form is submitted. "
+            "The enroll_all_ed command also enrolls every current member."
+        ),
+    )
+    # An array, not a MultiSelectField: "diversity, equity, and inclusion chair"
+    # contains commas, which a comma-joined field would split apart.
+    assign_to_roles = ArrayField(
+        models.CharField(max_length=50, choices=ALL_ROLES_CHOICES),
+        verbose_name="Assign to roles",
+        blank=True,
+        default=list,
+        help_text="Enroll a member when they start one of these roles.",
+    )
+
+    class Meta:
+        ordering = ["title"]
+        verbose_name = "Open edX course"
+
+    def __str__(self):
+        return self.title
+
+    @classmethod
+    def course_ids_for_all_members(cls):
+        return list(cls.objects.filter(active=True, assign_to_all_members=True).values_list("course_id", flat=True))
+
+    @classmethod
+    def course_ids_for_role(cls, role):
+        return list(
+            cls.objects.filter(active=True, assign_to_roles__contains=[role]).values_list("course_id", flat=True)
+        )
 
 
 class Training(TimeStampedModel):
@@ -838,8 +900,9 @@ class Training(TimeStampedModel):
 
     @staticmethod
     def enroll_user_ed(user, courses=None, header=None, request=None, _retried=False):
-        """Enroll ``user`` in the configured Open edX course run(s).
+        """Enroll ``user`` in Open edX course run(s).
 
+        ``courses`` defaults to the active "every member" ``EdCourse`` rows.
         Returns a list of ``(course_id, status, message)`` tuples.
 
         ``bulk_enroll`` always answers ``200 OK`` when the payload is valid; the
@@ -852,7 +915,9 @@ class Training(TimeStampedModel):
         states are parsed so each outcome is reported accurately.
         """
         if courses is None:
-            courses = settings.ED_COURSES
+            courses = EdCourse.course_ids_for_all_members()
+        if not courses:
+            return []
         if header is None:
             header = Training._ed_authenticate_header()
 
@@ -883,6 +948,15 @@ class Training(TimeStampedModel):
                     "(bulk-enroll requires is_staff=True on the ED_ID application owner).",
                 )
             )
+        elif response.status_code == 404:
+            results.append(
+                (
+                    ",".join(courses),
+                    "error",
+                    f"{user} NOT enrolled: Open edX has no bulk-enroll API "
+                    "(turn on ENABLE_BULK_ENROLLMENT_VIEW in the Open edX plugin).",
+                )
+            )
         elif response.status_code != 200:
             results.append(
                 (
@@ -899,6 +973,7 @@ class Training(TimeStampedModel):
                 status, detail = Training._interpret_enroll_result(course_block.get("results") or [])
                 results.append((course_id, status, f"{user}: {course_id}, {detail}"))
 
+        Training._record_ed_assignments(user, results)
         for _course_id, status, message in results:
             level = messages.INFO if status in ("enrolled", "pending") else messages.ERROR
             logger.log(_log_level_for(level), message)
@@ -907,19 +982,40 @@ class Training(TimeStampedModel):
         return results
 
     @staticmethod
-    def add_user_ed(user, request=None):
-        """Ensure ``user`` is enrolled in the configured Open edX course run(s).
+    def _record_ed_assignments(user, results):
+        """Add an incomplete ``Training`` row for each course just assigned to ``user``.
 
-        Thin wrapper around :meth:`enroll_user_ed`, kept for the admin action
-        and other existing callers.
+        A pending enrollment (the member has not signed in to Open edX yet) is
+        invisible to the grades sync, so without this row the assignment would
+        not show in CMT. The grades sync updates the row later.
         """
-        return Training.enroll_user_ed(user, request=request)
+        assigned = [course_id for course_id, status, _message in results if status in ("enrolled", "pending")]
+        titles = dict(EdCourse.objects.filter(course_id__in=assigned).values_list("course_id", "title"))
+        for course_id in assigned:
+            if not Training.objects.filter(user=user, course_id=course_id).exists():
+                Training.objects.create(
+                    user=user,
+                    progress_id="",
+                    course_id=course_id,
+                    course_title=titles.get(course_id, course_id),
+                    completed=False,
+                    max_quiz_score=0,
+                )
+
+    @staticmethod
+    def add_user_ed(user, request=None, courses=None):
+        """Enroll ``user`` in Open edX ``courses`` (default: the every-member courses).
+
+        Thin wrapper around :meth:`enroll_user_ed` for the PNM form and the
+        officer role views.
+        """
+        return Training.enroll_user_ed(user, courses=courses, request=request)
 
     @staticmethod
     def get_progress_all_users_ed(courses=None, header=None):
         """Sync training progress from Open edX (ed.thetatau.org) into ``Training``.
 
-        For each configured course run this pages the Grades API
+        For each course run (default: every active ``EdCourse``) this pages the Grades API
         (``GET /api/grades/v1/courses/{course_id}/``) and upserts one
         ``Training`` row per matched CMT user. The Grades API reports
         ``passed`` / ``percent`` for every enrolled account; only accounts that
@@ -930,7 +1026,9 @@ class Training(TimeStampedModel):
         owner to be Open edX global staff (same requirement as bulk-enroll).
         """
         if courses is None:
-            courses = settings.ED_COURSES
+            courses = list(EdCourse.objects.filter(active=True).values_list("course_id", flat=True))
+        if not courses:
+            return
         if header is None:
             header = Training._ed_authenticate_header()
         user_index = Training._ed_user_index()

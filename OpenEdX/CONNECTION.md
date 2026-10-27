@@ -101,11 +101,13 @@ stored in CMT's environment:
 ED_ID=<open edx application client id>
 ED_SECRET=<open edx application client secret>
 ED_HOST=https://ed.thetatau.org                     # default
-ED_COURSES=course-v1:ThetaTau+TT101+intro           # comma-separated for multiple
+ED_COURSES=course-v1:ThetaTau+TT101+intro           # only seeds the first course on migrate
 ```
 
 These map to [config/settings/base.py](../config/settings/base.py) (`ED_ID`,
-`ED_SECRET`, `ED_HOST`, `ED_COURSES`).
+`ED_SECRET`, `ED_HOST`, `ED_COURSES`). After the first migrate, courses and who
+gets them are managed in CMT admin under **Trainings > Open edX courses** (see
+[section 5](#5-enrollment--progress-sync)).
 
 > **CORS:** CMT already allows the Open edX origins via
 > `CORS_ALLOWED_ORIGIN_REGEXES` (`^https://\w+\.thetatau\.org$` covers
@@ -229,29 +231,63 @@ CMT's environment.
 
 The scratch notes tried to make members self-enroll by tweaking the course
 (`can_enroll`, invitation-only, SHIB-based enrollment, and a wildcard
-`CourseEnrollmentAllowed`). None of it made `can_enroll` return `True`, because the
-courseware enroll view intentionally gates self-enrollment.
+`CourseEnrollmentAllowed`). None of it made `can_enroll` return `True`. In Ulmo
+(`_can_enroll_courselike` in `lms/djangoapps/courseware/access.py`) a learner may
+self-enroll only when one of these holds:
+
+1. a `CourseEnrollmentAllowed` row exists for their **exact** email (there is no
+   wildcard matching),
+2. they are course or global staff, or
+3. the course is **not** invitation-only **and** today is inside its enrollment
+   start/end dates (Studio > Schedule & Details).
+
+The SHIB / enrollment-domain check no longer exists, so forcing SHIB changes nothing.
 
 ### The working approach (implemented in CMT)
 
-Don't fight the self-enroll gate — enroll **as staff** through the API:
+Don't fight the self-enroll gate. Enroll **as staff** through the API:
 
 - **Enroll:** `POST {ED_HOST}/api/bulk_enroll/v1/bulk_enroll` with
   `auto_enroll=true`. If the member already has an Open edX account they are enrolled
   immediately; if not, a pending `CourseEnrollmentAllowed` is created that becomes a
   real enrollment the first time they log in via SSO. Requires
   `ENABLE_BULK_ENROLLMENT_VIEW=True` (set by the plugin) and the global-staff API
-  account (step 4). Implemented as `Training.enroll_user_ed()` and called from the
-  pledge form, the national-officer role change, the admin action, and the
-  `enroll_all_ed` management command.
+  account (step 4). Implemented as `Training.enroll_user_ed()`.
+- **Which courses, for whom:** CMT admin > **Trainings > Open edX courses**
+  (`trainings.EdCourse`) is the Open edX version of Vector's position rules. Add the
+  course run key and a title, then choose who gets it:
+  - **Assign to every member:** enrolled when their PNM form is submitted.
+  - **Assign to roles:** enrolled when an officer adds them to one of these roles
+    (chapter officer list or national officer list).
+  - Neither: the course is only assigned by hand.
+
+  Migration `trainings 0004` seeded the course(s) from `ED_COURSES` with *every
+  member* plus all national officer roles, which is what CMT did before.
+- **Assign by hand:** CMT admin > **Users**, tick the member(s), action **Assign
+  Member Training**, choose **ED.thetatau** and tick the course(s). Each person's
+  result (enrolled, pending until first sign-in, or the error) is shown after it runs.
+- **Backfill:** `python manage.py enroll_all_ed` applies the rules to everyone who
+  already qualifies (every active member for every-member courses, current role
+  holders for role courses). `--course <run key>` limits it to one course, `--limit N`
+  to a test batch.
+- **Visible in CMT:** every assignment adds an incomplete row to Chapter training
+  records, so pending enrollments show before the member first signs in.
 - **SSO + enroll in one hop (deep link):** send a member to
   ```
   https://ed.thetatau.org/account/finish_auth?course_id=course-v1:ThetaTau+TT101+intro&enrollment_action=enroll&course_mode=honor&email_opt_in=false&tpa_hint=oa2-cmt
   ```
-  which logs them in through CMT and enrolls them in one redirect.
+  which logs them in through CMT and enrolls them in one redirect (only when rule 1
+  or 3 above lets them enroll).
 - **Progress sync (edX → CMT):** `Training.get_progress_all_users_ed()` pages the
-  grades API `GET {ED_HOST}/api/grades/v1/courses/{course_id}/` and upserts a
-  `Training` row per member. Triggered by `python manage.py sync_trainings`.
+  grades API `GET {ED_HOST}/api/grades/v1/courses/{course_id}/` for every active
+  Open edX course and updates the member's `Training` row. Triggered by
+  `python manage.py sync_trainings`.
+
+> **Upgrading past Verawood:** Ulmo and Verawood read
+> `FEATURES['ENABLE_BULK_ENROLLMENT_VIEW']`; edx-platform master (the next release)
+> reads a top-level `ENABLE_BULK_ENROLLMENT_VIEW` setting instead. The plugin sets
+> both. If the flag is missing, Open edX answers 404 and CMT reports "Open edX has no
+> bulk-enroll API".
 
 See [../thetatauCMT/trainings/models.py](../thetatauCMT/trainings/models.py) for all
 of the above.

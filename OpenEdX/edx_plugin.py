@@ -38,6 +38,8 @@ hooks.Filters.ENV_PATCHES.add_items(
             "openedx-lms-common-settings",
             "FEATURES['ENABLE_BULK_ENROLLMENT_VIEW'] = True",
         ),
+        # Releases after Verawood read the top-level setting instead of FEATURES.
+        ("openedx-lms-common-settings", "ENABLE_BULK_ENROLLMENT_VIEW = True"),
         ("cms-env", "EMAIL_BACKEND: anymail.backends.mailjet.EmailBackend"),
         ("lms-env", "EMAIL_BACKEND: anymail.backends.mailjet.EmailBackend"),
         ("cms-env", "MAILJET_API_KEY: "),

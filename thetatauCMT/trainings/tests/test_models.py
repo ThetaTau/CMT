@@ -6,7 +6,13 @@ from django.contrib import messages
 from django.utils import timezone
 
 import core.requests as core_requests
-from thetatauCMT.trainings.models import Training, TrainingSystemUnavailable, _lms_response_json, _post_lms_json
+from thetatauCMT.trainings.models import (
+    EdCourse,
+    Training,
+    TrainingSystemUnavailable,
+    _lms_response_json,
+    _post_lms_json,
+)
 
 
 @pytest.mark.django_db
@@ -136,7 +142,7 @@ class _FakeResponse:
 
 
 @pytest.mark.django_db
-def test_enroll_user_ed_parses_per_course_outcomes(auto_login_user, settings, monkeypatch):
+def test_enroll_user_ed_parses_per_course_outcomes(auto_login_user, monkeypatch):
     """enroll_user_ed reports the real per-course outcome from the response body.
 
     The bulk-enroll endpoint always answers 200, so the body is what matters:
@@ -144,7 +150,6 @@ def test_enroll_user_ed_parses_per_course_outcomes(auto_login_user, settings, mo
     """
     course_1 = "course-v1:ThetaTau+TT101+intro"
     course_2 = "course-v1:ThetaTau+TT201+adv"
-    settings.ED_COURSES = [course_1, course_2]
     _, user = auto_login_user()
 
     body = {
@@ -158,24 +163,142 @@ def test_enroll_user_ed_parses_per_course_outcomes(auto_login_user, settings, mo
         lambda *a, **k: _FakeResponse(body=body),
     )
 
-    results = Training.enroll_user_ed(user, header={"Authorization": "JWT x"})
+    results = Training.enroll_user_ed(user, courses=[course_1, course_2], header={"Authorization": "JWT x"})
     outcomes = {course_id: status for course_id, status, _msg in results}
     assert outcomes == {course_1: "enrolled", course_2: "pending"}
 
 
 @pytest.mark.django_db
-def test_enroll_user_ed_reports_not_global_staff_on_403(auto_login_user, settings, monkeypatch):
+def test_enroll_user_ed_reports_not_global_staff_on_403(auto_login_user, monkeypatch):
     """A 403 from bulk-enroll is surfaced as a clear 'not global staff' error."""
-    settings.ED_COURSES = ["course-v1:ThetaTau+TT101+intro"]
+    course_id = "course-v1:ThetaTau+TT301+staff"
     _, user = auto_login_user()
     monkeypatch.setattr(
         "thetatauCMT.trainings.models.requests.post",
         lambda *a, **k: _FakeResponse(status_code=403, reason="Forbidden"),
     )
 
-    results = Training.enroll_user_ed(user, header={"Authorization": "JWT x"})
+    results = Training.enroll_user_ed(user, courses=[course_id], header={"Authorization": "JWT x"})
     assert [status for _c, status, _m in results] == ["error"]
     assert "global staff" in results[0][2]
+    assert not Training.objects.filter(user=user, course_id=course_id).exists()
+
+
+@pytest.mark.django_db
+def test_enroll_user_ed_explains_a_404_as_the_bulk_enroll_flag(auto_login_user, monkeypatch):
+    _, user = auto_login_user()
+    monkeypatch.setattr(
+        "thetatauCMT.trainings.models.requests.post",
+        lambda *a, **k: _FakeResponse(status_code=404, reason="Not Found"),
+    )
+
+    results = Training.enroll_user_ed(user, courses=["course-v1:ThetaTau+TT101+intro"], header={"Authorization": "x"})
+
+    assert [status for _c, status, _m in results] == ["error"]
+    assert "ENABLE_BULK_ENROLLMENT_VIEW" in results[0][2]
+
+
+@pytest.mark.django_db
+def test_enroll_user_ed_records_each_assigned_course_once(auto_login_user, monkeypatch):
+    """Enrolled and pending courses get an incomplete Training row; existing rows are left alone."""
+    _, user = auto_login_user()
+    named = EdCourse.objects.create(course_id="course-v1:ThetaTau+TT401+named", title="Officer Basics")
+    unnamed_id = "course-v1:ThetaTau+TT402+unnamed"
+    done_id = "course-v1:ThetaTau+TT403+done"
+    failed_id = "course-v1:ThetaTau+TT404+failed"
+    Training.objects.create(
+        user=user,
+        progress_id="",
+        course_id=done_id,
+        course_title="Done",
+        completed=True,
+        max_quiz_score=95,
+    )
+    body = {
+        "courses": {
+            named.course_id: {"results": [{"after": {"enrollment": True}}]},
+            unnamed_id: {"results": [{"after": {"enrollment": False, "allowed": True}}]},
+            done_id: {"results": [{"after": {"enrollment": True}}]},
+            failed_id: {"results": [{"invalidIdentifier": True}]},
+        }
+    }
+    monkeypatch.setattr("thetatauCMT.trainings.models.requests.post", lambda *a, **k: _FakeResponse(body=body))
+
+    Training.enroll_user_ed(user, courses=[named.course_id, unnamed_id, done_id, failed_id], header={"x": "y"})
+
+    rows = {row.course_id: row for row in Training.objects.filter(user=user)}
+    assert set(rows) == {named.course_id, unnamed_id, done_id}
+    assert (rows[named.course_id].course_title, rows[named.course_id].completed) == ("Officer Basics", False)
+    assert rows[unnamed_id].course_title == unnamed_id
+    assert (rows[done_id].completed, rows[done_id].max_quiz_score) == (True, 95)
+
+
+@pytest.mark.django_db
+def test_enroll_user_ed_without_courses_does_not_call_open_edx(auto_login_user, monkeypatch):
+    """No matching course means no token request and no bulk-enroll call."""
+    _, user = auto_login_user()
+    EdCourse.objects.all().delete()
+
+    def fail(*args, **kwargs):
+        raise AssertionError("Open edX must not be called")
+
+    monkeypatch.setattr("thetatauCMT.trainings.models.requests.post", fail)
+
+    assert Training.enroll_user_ed(user) == []
+    assert Training.add_user_ed(user, courses=[]) == []
+
+
+@pytest.mark.django_db
+def test_enroll_user_ed_defaults_to_active_every_member_courses(auto_login_user, monkeypatch):
+    _, user = auto_login_user()
+    EdCourse.objects.all().delete()
+    everyone = EdCourse.objects.create(
+        course_id="course-v1:ThetaTau+TT101+intro", title="Intro", assign_to_all_members=True
+    )
+    EdCourse.objects.create(
+        course_id="course-v1:ThetaTau+TT102+old", title="Old", assign_to_all_members=True, active=False
+    )
+    EdCourse.objects.create(course_id="course-v1:ThetaTau+TT103+officers", title="Officers", assign_to_roles=["regent"])
+    payloads = []
+
+    def fake_post(url, headers=None, json=None, **kwargs):
+        payloads.append(json)
+        return _FakeResponse(body={"courses": {}})
+
+    monkeypatch.setattr("thetatauCMT.trainings.models.requests.post", fake_post)
+
+    Training.enroll_user_ed(user, header={"x": "y"})
+
+    assert [payload["courses"] for payload in payloads] == [everyone.course_id]
+
+
+@pytest.mark.django_db
+def test_ed_course_ids_for_role_matches_whole_role_names_on_active_courses():
+    """A role must match whole names ("regent" is not "vice regent"), even names with commas."""
+    dei = "diversity, equity, and inclusion chair"
+    active = EdCourse.objects.create(
+        course_id="course-v1:ThetaTau+TT501+chapter", title="Chapter", assign_to_roles=["regent", dei]
+    )
+    EdCourse.objects.create(
+        course_id="course-v1:ThetaTau+TT502+retired", title="Retired", assign_to_roles=["regent"], active=False
+    )
+
+    assert EdCourse.course_ids_for_role("regent") == [active.course_id]
+    assert EdCourse.course_ids_for_role(dei) == [active.course_id]
+    assert EdCourse.course_ids_for_role("vice regent") == []
+
+
+@pytest.mark.django_db
+def test_migration_seeds_ed_courses_for_every_member_and_national_officers():
+    """Migration 0004 carries settings.ED_COURSES over so enrollment does not change on deploy."""
+    from django.conf import settings
+
+    from core.models import NAT_OFFICERS
+
+    for course_id in settings.ED_COURSES:
+        course = EdCourse.objects.get(course_id=course_id)
+        assert course.active and course.assign_to_all_members
+        assert sorted(course.assign_to_roles) == sorted(NAT_OFFICERS)
 
 
 def test_ed_normalize_strips_case_and_punctuation():
@@ -266,7 +389,6 @@ def test_get_progress_all_users_ed_pages_and_upserts(auto_login_user, settings, 
     _, user = auto_login_user()
     course_id = "course-v1:ThetaTau+TT101+intro"
     settings.ED_HOST = "https://ed.example.org"
-    settings.ED_COURSES = [course_id]
 
     page2 = f"https://ed.example.org/api/grades/v1/courses/{course_id}/?cursor=page2"
     grade1 = {"username": user.name, "email": "", "passed": True, "percent": 0.9}
@@ -281,7 +403,7 @@ def test_get_progress_all_users_ed_pages_and_upserts(auto_login_user, settings, 
 
     monkeypatch.setattr("thetatauCMT.trainings.models.requests.get", fake_get)
 
-    Training.get_progress_all_users_ed(header={"Authorization": "JWT x"})
+    Training.get_progress_all_users_ed(courses=[course_id], header={"Authorization": "JWT x"})
 
     training = Training.objects.get(user=user, course_id=course_id)
     assert training.completed is True
@@ -289,6 +411,26 @@ def test_get_progress_all_users_ed_pages_and_upserts(auto_login_user, settings, 
     assert training.course_title == "Paged Intro"
     # grade2 matched no CMT user, so only the one row exists.
     assert Training.objects.filter(course_id=course_id).count() == 1
+
+
+@pytest.mark.django_db
+def test_get_progress_all_users_ed_defaults_to_active_ed_courses(settings, monkeypatch):
+    settings.ED_HOST = "https://ed.example.org"
+    EdCourse.objects.all().delete()
+    EdCourse.objects.create(course_id="course-v1:ThetaTau+TT101+intro", title="Intro")
+    EdCourse.objects.create(course_id="course-v1:ThetaTau+TT102+old", title="Old", active=False)
+    grade_urls = []
+
+    def fake_get(url, headers=None, **kwargs):
+        if "/api/grades/" in url:
+            grade_urls.append(url)
+        return _FakeResponse(body={"results": [], "next": None, "name": "Intro"})
+
+    monkeypatch.setattr("thetatauCMT.trainings.models.requests.get", fake_get)
+
+    Training.get_progress_all_users_ed(header={"Authorization": "JWT x"})
+
+    assert grade_urls == ["https://ed.example.org/api/grades/v1/courses/course-v1:ThetaTau+TT101+intro/"]
 
 
 @pytest.mark.django_db

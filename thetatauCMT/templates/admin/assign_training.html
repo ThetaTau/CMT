@@ -5,10 +5,13 @@
   <form action="" method="post">
     {% csrf_token %}
     <p>
-      What group should members be added to in training?
+      <b>Vector:</b> pick the group members should be added to in the training system.
+      New groups are told apart by the first 8 letters of their name, so keep those unique.
     </p>
-      <p><b>NEW GROUPS keep in mind that the name of new groups will
-        be unique based on the first 8 letters of the name.</b></p>
+    <p>
+      <b>ED.thetatau (Open edX):</b> pick the course(s) to enroll members in. Anyone who has
+      not signed in to Open edX yet is enrolled the first time they sign in with CMT.
+    </p>
     {{ form | crispy }}
     <input type="hidden" name="action" value="assign_training"/>
     <input type="submit" name="apply" value="Assign Training"/>

@@ -2,6 +2,11 @@ from crispy_forms.bootstrap import FormActions, InlineField, StrictButton
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Fieldset, Layout, Row, Submit
 from django import forms
+from django.contrib.admin.widgets import FilteredSelectMultiple
+
+from core.models import ALL_ROLES_CHOICES
+
+from .models import EdCourse
 
 
 class TrainingListFormHelper(FormHelper):
@@ -54,6 +59,13 @@ class UserAdminTrainingForm(forms.Form):
     )
     extra_group = forms.ChoiceField(label="Extra Group")
     new_group = forms.CharField(label="New Group Not Above", required=False)
+    ed_courses = forms.ModelMultipleChoiceField(
+        label="Open edX courses",
+        queryset=EdCourse.objects.filter(active=True),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Only used for ED.thetatau. Add courses under Trainings > Open edX courses.",
+    )
 
     def __init__(self, extra_groups, *args, **kwargs):
         extra_groups.append(("new_group", "***NEW GROUP***"))
@@ -74,6 +86,10 @@ class UserAdminTrainingForm(forms.Form):
 
     def clean(self):
         super().clean()
+        if self.cleaned_data.get("training_system") == "ED.thetatau":
+            if not self.cleaned_data.get("ed_courses"):
+                self.add_error("ed_courses", forms.ValidationError("Pick at least one Open edX course."))
+            return
         new_group = self.cleaned_data.get("new_group", "")
         extra_group = self.cleaned_data.get("extra_group")
         if extra_group == "new_group" and new_group == "":
@@ -83,3 +99,19 @@ class UserAdminTrainingForm(forms.Form):
             )
         elif extra_group == "new_group" and new_group:
             self.cleaned_data["extra_group"] = new_group
+
+
+class EdCourseAdminForm(forms.ModelForm):
+    # The default ArrayField widget is a comma-separated text box, which cannot
+    # hold "diversity, equity, and inclusion chair".
+    assign_to_roles = forms.MultipleChoiceField(
+        label="Assign to roles",
+        choices=ALL_ROLES_CHOICES,
+        required=False,
+        widget=FilteredSelectMultiple("roles", is_stacked=False),
+        help_text=EdCourse._meta.get_field("assign_to_roles").help_text,
+    )
+
+    class Meta:
+        model = EdCourse
+        fields = ["course_id", "title", "active", "assign_to_all_members", "assign_to_roles"]

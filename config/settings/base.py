@@ -714,9 +714,10 @@ LMS_SECRET = env("LMS_SECRET", default=None)
 
 ED_ID = env("ED_ID", default=None)
 ED_SECRET = env("ED_SECRET", default=None)
-# Base URL of the Open edX (Tutor) instance and the course run(s) every user
-# should be enrolled in. Override per-environment via env vars if needed.
+# Base URL of the Open edX (Tutor) instance.
 ED_HOST = env("ED_HOST", default="https://ed.thetatau.org")
+# Only read once, by migration trainings 0004, to seed the first Open edX
+# course(s). Courses are managed in the admin (Trainings > Open edX courses).
 ED_COURSES = env.list("ED_COURSES", default=["course-v1:ThetaTau+TT101+intro"])
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
