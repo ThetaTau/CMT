@@ -400,7 +400,7 @@
       "owner": "scribe",
       "type": "form",
       "days_advance": 30,
-      "resource": "forms:audit",
+      "resource": "",
       "description": "These submissions are for your Regional Director(s) to review to confirm a balanced program and overAll health of your chapter.",
       "submission_type": 21
     }
@@ -428,7 +428,7 @@
       "owner": "scribe",
       "type": "form",
       "days_advance": 30,
-      "resource": "forms:audit",
+      "resource": "viewflow:forms:prematurealumnus:start",
       "description": "Submit Updates to update the status of members for premature alumnus",
       "submission_type": 21
     }
@@ -442,7 +442,7 @@
       "owner": "regent",
       "type": "form",
       "days_advance": 30,
-      "resource": "forms:audit",
+      "resource": "",
       "description": "Ye olde tightrope program",
       "submission_type": 21
     }
