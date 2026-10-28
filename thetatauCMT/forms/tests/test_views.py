@@ -4223,6 +4223,94 @@ def test_resignation_officer_can_open_and_sign(auto_login_user, node_name, offic
     assert task.status == STATUS.DONE
 
 
+@pytest.mark.django_db
+def test_executive_director_review_opens_for_a_resignation_without_a_letter(auto_login_user, settings):
+    """Regression: once #1175 stopped collecting the letter, the Executive Director Review
+    page 500'd with ``ValueError: The 'letter' attribute has no file associated with it``:
+    ``forms/resignation/process_data.html`` read ``value.url`` on the empty file."""
+    from django.utils import timezone
+    from viewflow.models import Task
+
+    from thetatauCMT.forms.flows import ResignationFlow
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    director = UserFactory.create()
+    settings.EXECUTIVE_DIRECTOR = director.username
+    member = UserFactory.create()
+    process = _start_resignation(
+        member, UserFactory.create(chapter=member.chapter), UserFactory.create(chapter=member.chapter)
+    )
+    assert not process.letter
+    for node in (ResignationFlow.assign_o1, ResignationFlow.assign_o2):
+        activation = Task.objects.get(process=process, flow_task=node).activate()
+        activation.prepare()
+        activation.done()
+    task = Task.objects.get(process=process, flow_task=ResignationFlow.exec_approve)
+    client, _ = auto_login_user(user=director)
+    url = f"/workflow/forms/resignation/{process.pk}/exec_approve/{task.pk}/"
+
+    response = client.get(f"{url}?back=%2Fworkflow%2F")
+
+    assert response.status_code == 200
+    assert "Resignation Letter" in response.content.decode()
+
+    started = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+    response = client.post(url, {"approved_exec": "on", "_viewflow_activation-started": started})
+
+    assert response.status_code == 302
+    process.refresh_from_db()
+    assert process.approved_exec is True
+    assert process.finished is not None
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)  # superusers bypass Require2FAMiddleware only when DEBUG
+@pytest.mark.parametrize("flow_label", ["resignation", "prematurealumnus"])
+def test_process_detail_opens_without_the_dropped_upload(auto_login_user, admin_user, flow_label):
+    """#1175 also stopped collecting the premature alumnus ``form``; both detail pages
+    render the same process data as the review task."""
+    from thetatauCMT.forms.tests.factories import PrematureAlumnusFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    if flow_label == "resignation":
+        member = UserFactory.create()
+        process = _start_resignation(
+            member, UserFactory.create(chapter=member.chapter), UserFactory.create(chapter=member.chapter)
+        )
+    else:
+        process = PrematureAlumnusFactory.create(form="")
+    client, _ = auto_login_user(user=admin_user)
+
+    response = client.get(reverse(f"viewflow:forms:{flow_label}:detail", args=[process.pk]))
+
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)  # superusers bypass Require2FAMiddleware only when DEBUG
+def test_process_detail_still_links_an_uploaded_file(auto_login_user, admin_user):
+    from thetatauCMT.forms.tests.factories import PrematureAlumnusFactory
+
+    process = PrematureAlumnusFactory.create()
+    client, _ = auto_login_user(user=admin_user)
+
+    response = client.get(reverse("viewflow:forms:prematurealumnus:detail", args=[process.pk]))
+
+    assert f'href="{process.form.url}"' in response.content.decode()
+
+
+def test_no_process_data_template_reads_url_of_a_possibly_empty_file():
+    """``value.url`` raises on a file field with no file; check ``value`` first, as
+    viewflow's own ``process_data.html`` does."""
+    from pathlib import Path
+
+    from django.conf import settings
+
+    templates = Path(settings.APPS_DIR, "templates").rglob("process_data.html")
+    unguarded = sorted(str(path) for path in templates if "{% if value.url %}" in path.read_text(encoding="utf-8"))
+    assert unguarded == []
+
+
 # ─── PledgeProgramListView CSV with officers (lines 1403-1406) ───────────────
 
 

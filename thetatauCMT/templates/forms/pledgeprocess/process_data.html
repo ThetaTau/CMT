@@ -17,7 +17,7 @@
             <dd>
               {% if value == True %}<span style="background-color:#00FF00">{{ value }}</span>{% else %}
                 {% if value == False %}<span style="background-color:#FF0000">{{ value }}</span>{% else %}
-                {% if value.url %}<a href="{{ value.url }}" target=”_blank”>{{ value.name }}</a>{% else %}
+                {% if value and value.url %}<a href="{{ value.url }}" target=”_blank”>{{ value.name }}</a>{% else %}
                 {{ value }}{% endif %}{% endif %}{% endif %}
             </dd>
             {% endfor %}
