@@ -552,6 +552,7 @@ class MyUserAdmin(
                     "first_name",
                     "middle_name",
                     "last_name",
+                    "maiden_name",
                     "preferred_pronouns",
                     "preferred_name",
                     "email",
@@ -805,6 +806,7 @@ class MemberUpdateAdmin(ComponentAddressAdminMixin, SearchAdmin, admin.ModelAdmi
         "user",
         "first_name",
         "last_name",
+        "maiden_name",
         "chapter",
         "created",
         "approved",
@@ -822,5 +824,6 @@ class MemberUpdateAdmin(ComponentAddressAdminMixin, SearchAdmin, admin.ModelAdmi
         "user__name",
         "first_name",
         "last_name",
+        "maiden_name",
         "user__preferred_name",
     ]
