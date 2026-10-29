@@ -479,7 +479,7 @@ class Chapter(models.Model, EmailSignalMixin):
         :return:
         """
         return self.members.filter(
-            current_status__in=["active", "activepend", "pendexpul" "activeCC"],
+            current_status__in=["active", "activepend", "pendexpul", "activeCC"],
         ).distinct()
 
     def alumni(self):

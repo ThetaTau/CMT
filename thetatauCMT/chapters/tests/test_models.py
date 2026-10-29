@@ -153,9 +153,11 @@ def test_actives(chapter, user_factory):
 
 @pytest.mark.django_db
 def test_active_actives(chapter, user_factory):
+    """Regression: a missing comma ("pendexpul" "activeCC") made the list
+    ["active", "activepend", "pendexpulactiveCC"], silently dropping both statuses."""
     result = chapter.active_actives()
     assert result.count() == 0
-    testing = ["active", "activepend"]
+    testing = ["active", "activepend", "pendexpul", "activeCC"]
     expected_users = make_many_users_status(user_factory, chapter, testing)
     result = chapter.active_actives()
     assert set(expected_users) == set(result)

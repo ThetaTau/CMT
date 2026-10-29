@@ -4861,6 +4861,49 @@ def test_user_autocomplete_exclude_self_flag_hides_requesting_user(auto_login_us
 
 
 @pytest.mark.django_db
+def test_candidate_chapter_officer_can_graduate_an_active_cc_member(auto_login_user, user_factory):
+    """Regression: candidate-chapter members (status activeCC) were missing from the
+    graduation member picker, because ``Chapter.active_actives`` silently dropped activeCC."""
+    import json
+
+    from thetatauCMT.jobs.models import Major
+
+    client, officer = auto_login_user()
+    _add_to_group(officer, "officer")
+    officer.chapter.candidate_chapter = True
+    officer.chapter.save(update_fields=["candidate_chapter"])
+    member = user_factory.create(chapter=officer.chapter)
+    member.set_current_status(status="active")
+    member.refresh_from_db()
+    assert member.current_status == "activeCC"
+
+    forward = json.dumps({"chapter": "true", "actives": "true", "exclude_self": "true"})
+    response = client.get(reverse("users:autocomplete"), {"forward": forward, "q": member.name[:4]})
+    assert member.pk in {int(item["id"]) for item in response.json()["results"]}
+
+    response = client.post(reverse("forms:status_graduate_select"), {"members": [member.pk]})
+    assert response.status_code == 302
+    major = Major.objects.create(name="civil engineering")
+    response = client.post(
+        reverse("forms:status_graduate"),
+        data={
+            "chapter": officer.chapter.name,
+            "graduates-TOTAL_FORMS": "1",
+            "graduates-INITIAL_FORMS": "1",
+            "graduates-MIN_NUM_FORMS": "0",
+            "graduates-MAX_NUM_FORMS": "1000",
+            "graduates-0-degree": "bs",
+            "graduates-0-date_start": "2026-05-15",
+            "graduates-0-major_final": [str(major.pk)],
+            "graduates-0-email_personal": "grad@example.com",
+        },
+    )
+    assert response.status_code == 302
+    member.refresh_from_db()
+    assert member.current_status == "alumniCC"
+
+
+@pytest.mark.django_db
 def test_premature_alumnus_form_rejects_self():
     """PrematureAlumnusForm.clean_user rejects the requesting user."""
     from django.forms.renderers import get_default_renderer
