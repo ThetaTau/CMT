@@ -276,6 +276,7 @@ class MyUserCreationForm(forms.ModelForm):
             "first_name",
             "middle_name",
             "last_name",
+            "maiden_name",
             "email",
             "chapter",
             "badge_number",
@@ -573,6 +574,7 @@ class MyUserAdmin(
                     "first_name",
                     "middle_name",
                     "last_name",
+                    "maiden_name",
                     "current_status",
                     "current_roles",
                     "officer",
@@ -647,6 +649,7 @@ class MyUserAdmin(
         "id",
         "preferred_name",
         "nickname",
+        "maiden_name",
         "email_school",
     ) + AuthUserAdmin.search_fields
     resource_class = UserResource

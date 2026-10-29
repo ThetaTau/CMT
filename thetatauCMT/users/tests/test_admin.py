@@ -1,7 +1,35 @@
 import pytest
+from django.test import override_settings
+from django.urls import reverse
 from test_plus.test import TestCase
 
 from thetatauCMT.users.admin import MyUserCreationForm
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)  # superusers bypass Require2FAMiddleware only when DEBUG
+def test_maiden_name_is_on_the_user_admin_change_and_add_pages(auto_login_user, admin_user, user_factory):
+    """Regression: maiden_name was only in add_fieldsets, so editing a member never showed it."""
+    member = user_factory.create(maiden_name="Oldname")
+    client, _ = auto_login_user(user=admin_user)
+
+    change_page = client.get(reverse("admin:users_user_change", args=[member.pk])).content.decode()
+    add_page = client.get(reverse("admin:users_user_add")).content.decode()
+
+    assert 'name="maiden_name"' in change_page
+    assert 'value="Oldname"' in change_page
+    assert 'name="maiden_name"' in add_page
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)  # superusers bypass Require2FAMiddleware only when DEBUG
+def test_user_admin_search_finds_a_member_by_maiden_name(auto_login_user, admin_user, user_factory):
+    member = user_factory.create(maiden_name="Fitzgerald")
+    client, _ = auto_login_user(user=admin_user)
+
+    response = client.get(reverse("admin:users_user_changelist"), {"q": "Fitzgerald"})
+
+    assert member in response.context["cl"].result_list
 
 
 class TestMyUserCreationForm(TestCase):
