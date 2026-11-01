@@ -657,6 +657,8 @@ def test_class_year_mix_puts_chapters_about_to_lose_the_most_members_first():
     seniors = next(trace for trace in fig.data if trace.name == "Senior")
     assert list(seniors.x) == [old.name, young.name]
     assert list(seniors.y) == [100.0, 50.0]
+    # The legend sits above the bars, clear of the rotated chapter names.
+    assert fig.layout.legend.y > 1
 
 
 @pytest.mark.django_db

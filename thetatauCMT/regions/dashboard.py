@@ -1235,7 +1235,10 @@ def class_year_mix(region_slug, theme):
         yaxis_title="Share of student members (%)",
         legend_title_text="Class",
     )
-    return _apply_theme(fig, theme)
+    _apply_theme(fig, theme)
+    # Above the bars: below, it collides with the rotated chapter names.
+    fig.update_layout(legend=dict(yanchor="bottom", y=1.02, xanchor="right", x=1))
+    return fig
 
 
 @app.callback(
