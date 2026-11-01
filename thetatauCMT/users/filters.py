@@ -1,6 +1,7 @@
 # filters.py
 import django_filters
 from django.db.models import Q
+from watson import search as watson
 
 from core.filters import DateRangeFilter, DynamicScopeFilterSetMixin
 from core.models import ACTIVE_STATUSES
@@ -95,6 +96,10 @@ class UserListFilterBase(django_filters.FilterSet):
 
 
 class UserListFilter(UserListFilterBase):
+    """The chapter roster: the member search replaces the "Member Name contains" box."""
+
+    name__icontains = None
+    q = django_filters.CharFilter(method="search_members", label="Name, badge # or email")
     rmp_complete = django_filters.ChoiceFilter(
         label="RMP Status",
         choices=[
@@ -102,6 +107,13 @@ class UserListFilter(UserListFilterBase):
             ("False", "Incomplete"),
         ],
     )
+
+    class Meta(UserListFilterBase.Meta):
+        fields = {field: lookups for field, lookups in UserListFilterBase.Meta.fields.items() if field != "name"}
+
+    def search_members(self, queryset, name, value):
+        # Same index as Search all Members, but only within the roster's own chapter queryset.
+        return watson.filter(queryset, value)
 
 
 class UserRoleListFilter(DynamicScopeFilterSetMixin, django_filters.FilterSet):

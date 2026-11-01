@@ -66,7 +66,7 @@ class UserListFormHelper(FormHelper):
     help_text_inline = False
     html5_required = True
 
-    def __init__(self, form=None, rmp_complete=False):
+    def __init__(self, form=None, rmp_complete=False, search_field="name__icontains"):
         extra = []
         if rmp_complete:
             extra = [
@@ -76,7 +76,7 @@ class UserListFormHelper(FormHelper):
             Fieldset(
                 '<i class="fas fa-search"></i> Filter Members',
                 Row(
-                    InlineField("name__icontains"),
+                    InlineField(search_field),
                     *extra,
                     InlineField("major"),
                     InlineField("graduation_year__icontains"),

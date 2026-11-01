@@ -1644,9 +1644,41 @@ def test_user_list_view_finds_member_by_maiden_name(auto_login_user):
     # UserListView defaults `current_status` to the active-like statuses
     # whenever it is absent from the query string, so the target needs one.
     target = UserFactory.create(chapter=user.chapter, maiden_name="Fitzgerald", current_status="active")
-    response = client.get(reverse("users:list"), {"name__icontains": "Fitzgerald"})
+    response = client.get(reverse("users:list"), {"q": "Fitzgerald"})
     assert response.status_code == 200
     assert target.name.encode() in response.content
+
+
+@pytest.mark.django_db
+def test_roster_search_matches_badge_number_and_email(auto_login_user, user_factory):
+    """The roster search uses the full-text member index, so it is not limited to names."""
+    client, user = auto_login_user()
+    target = user_factory.create(
+        chapter=user.chapter,
+        current_status="active",
+        badge_number=97531864,
+        email="roster.lookup@example.com",
+    )
+    for query in ("97531864", "roster.lookup@example.com"):
+        response = client.get(reverse("users:list"), {"q": query})
+        assert list(response.context["object_list"]) == [target], query
+
+
+@pytest.mark.django_db
+def test_roster_search_only_covers_the_viewers_chapter(auto_login_user, user_factory):
+    """The member index spans every chapter; the roster search must not."""
+    from thetatauCMT.chapters.models import GREEK_ABR
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+
+    client, user = auto_login_user()
+    other_chapter = ChapterFactory(name=next(n for n in GREEK_ABR.values() if n != user.chapter.name))
+    ours = user_factory.create(chapter=user.chapter, current_status="active", name="Quintessa Vandermeer")
+    user_factory.create(chapter=other_chapter, current_status="active", name="Octavia Vandermeer")
+
+    response = client.get(reverse("users:list"), {"q": "Vandermeer"})
+
+    assert list(response.context["object_list"]) == [ours]
+    assert "name__icontains" not in response.context["filter"].form.fields
 
 
 @pytest.mark.django_db

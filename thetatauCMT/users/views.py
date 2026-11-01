@@ -932,7 +932,7 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
                 )
         qs = annotate_rmp_status(qs)
         self.filter = self.filter_class(request_get, queryset=qs, request=self.request)
-        self.filter.form.helper = self.formhelper_class(rmp_complete=True)
+        self.filter.form.helper = self.formhelper_class(rmp_complete=True, search_field="q")
         return self.filter.qs
 
     def get_context_data(self, **kwargs):

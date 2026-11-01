@@ -238,6 +238,7 @@
           "key": "chapter-roster",
           "name": "Chapter roster",
           "short_description": "Every active, PNM and alumnus member of your chapter, with status and contact details.",
+          "long_description": "Search the roster by name, nickname, maiden name, badge number or email, or just the start of one. The search only looks inside your own chapter; National Officers find members in other chapters with Member search (all chapters).",
           "url_name": "users:list",
           "roles": ["scribe"]
         },
