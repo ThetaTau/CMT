@@ -301,6 +301,7 @@ app.layout = html.Div(
                 _kpi_card("kpi-living-census", "Living census", "actives + alumni, not deceased"),
                 _kpi_card("kpi-pnms", "PNMs", "prospective status started"),
                 _kpi_card("kpi-initiations", "Initiations", "date within academic year"),
+                _kpi_card("kpi-graduates", "Graduates", "graduation date within academic year"),
                 _kpi_card("kpi-prealums", "Prealumni", "approved by exec"),
                 _kpi_card("kpi-resignations", "Resignations", "approved by exec"),
                 _kpi_card("kpi-retention", "PNM retention", "1 − depledges / PNMs"),
@@ -327,6 +328,7 @@ app.layout = html.Div(
                         children=[
                             _panel("Student members by chapter", "members-by-chapter"),
                             _panel("Initiations by chapter", "initiations-by-chapter"),
+                            _panel("Graduates by chapter", "graduates-by-chapter"),
                             _panel("Depledges by chapter", "depledges-by-chapter"),
                         ],
                     ),
@@ -596,6 +598,7 @@ def _kpi_int(value):
         Output("kpi-living-census", "children"),
         Output("kpi-pnms", "children"),
         Output("kpi-initiations", "children"),
+        Output("kpi-graduates", "children"),
         Output("kpi-prealums", "children"),
         Output("kpi-resignations", "children"),
         Output("kpi-retention", "children"),
@@ -604,7 +607,7 @@ def _kpi_int(value):
     [Input("region-slug-store", "data"), Input("ay-store", "data")],
 )
 def update_kpis(region_slug, ay_start_year):
-    from thetatauCMT.forms.models import Depledge, Initiation, PrematureAlumnus, ResignationProcess
+    from thetatauCMT.forms.models import Depledge, Initiation, PrematureAlumnus, ResignationProcess, StatusChange
     from thetatauCMT.trainings.services import chapter_completion_stats
     from thetatauCMT.users.models import User, UserStatusChange
 
@@ -640,6 +643,19 @@ def update_kpis(region_slug, ay_start_year):
         date__gte=ay_start_date,
         date__lt=ay_end_date,
     ).count()
+
+    # Distinct members: a future-dated graduate stays active and can be reported twice.
+    graduates = (
+        StatusChange.objects.filter(
+            reason="graduate",
+            user__chapter__in=chapters,
+            date_start__gte=ay_start_date,
+            date_start__lt=ay_end_date,
+        )
+        .values("user_id")
+        .distinct()
+        .count()
+    )
 
     depledges = Depledge.objects.filter(
         user__chapter__in=chapters,
@@ -678,6 +694,7 @@ def update_kpis(region_slug, ay_start_year):
         _kpi_int(living_census),
         _kpi_int(pnms),
         _kpi_int(initiations),
+        _kpi_int(graduates),
         _kpi_int(prealums),
         _kpi_int(resignations),
         retention,
@@ -863,6 +880,32 @@ def initiations_by_chapter(region_slug, ay_start_year, theme):
         .annotate(count=Count("id"))
     )
     return _bar_by_chapter(rows, "Initiations", theme)
+
+
+@app.callback(
+    Output("graduates-by-chapter", "figure"),
+    [
+        Input("region-slug-store", "data"),
+        Input("ay-store", "data"),
+        Input("theme-store", "data"),
+    ],
+)
+def graduates_by_chapter(region_slug, ay_start_year, theme):
+    from thetatauCMT.forms.models import StatusChange
+
+    chapters = get_scope_chapters(region_slug)
+    ay_start, ay_end = ay_dates(ay_start_year)
+    rows = list(
+        StatusChange.objects.filter(
+            reason="graduate",
+            user__chapter__in=chapters,
+            date_start__gte=ay_start.date(),
+            date_start__lt=ay_end.date(),
+        )
+        .values("user__chapter__name", "user__chapter__region__name")
+        .annotate(count=Count("user", distinct=True))
+    )
+    return _bar_by_chapter(rows, "Graduates", theme)
 
 
 @app.callback(

@@ -6,6 +6,8 @@ and integration-lite invocations of the KPI + graph callbacks against the
 test DB.
 """
 
+import datetime
+
 import plotly.graph_objects as go
 import pytest
 
@@ -254,12 +256,12 @@ def test_get_scope_chapters_candidate_chapter_filter():
 
 
 @pytest.mark.django_db
-def test_update_kpis_returns_eight_values():
+def test_update_kpis_returns_nine_values():
     from thetatauCMT.regions.dashboard import update_kpis
 
     result = update_kpis("national", None)
     assert isinstance(result, tuple)
-    assert len(result) == 8
+    assert len(result) == 9
     for v in result:
         assert isinstance(v, str)
 
@@ -296,6 +298,7 @@ def test_ay_dates_none_defaults_to_current():
     "callback_name",
     [
         "initiations_by_chapter",
+        "graduates_by_chapter",
         "depledges_by_chapter",
         "events_by_chapter",
         "submissions_by_chapter",
@@ -474,3 +477,35 @@ def test_living_census_includes_closed_chapters():
     assert kpis[1] == "1"
     # Every other KPI still ignores closed chapters.
     assert kpis[0] == "0"
+
+
+@pytest.mark.django_db
+def test_graduates_count_members_with_a_graduation_in_the_academic_year():
+    """Graduates = members with a graduation report dated inside the AY, each counted once."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.forms.tests.factories import StatusChangeFactory
+    from thetatauCMT.regions.dashboard import graduates_by_chapter, update_kpis
+    from thetatauCMT.regions.tests.factories import RegionFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    region = RegionFactory(name="Graduates Region")
+    chapter = ChapterFactory()
+    chapter.region = region
+    chapter.save(update_fields=["region"])
+
+    def report(reason, date_start, user=None):
+        StatusChangeFactory(user=user or UserFactory(chapter=chapter), reason=reason, date_start=date_start)
+
+    reported_twice = UserFactory(chapter=chapter)
+    report("graduate", datetime.date(2025, 12, 13), user=reported_twice)
+    report("graduate", datetime.date(2025, 12, 13), user=reported_twice)
+    report("graduate", datetime.date(2026, 5, 9))
+    # Outside AY 2025-26, or not a graduation.
+    report("graduate", datetime.date(2025, 6, 30))
+    report("graduate", datetime.date(2026, 7, 1))
+    report("withdraw", datetime.date(2026, 1, 15))
+
+    # kpi-graduates is the fifth returned value.
+    assert update_kpis(region.slug, 2025)[4] == "2"
+    fig = graduates_by_chapter(region.slug, 2025, "light")
+    assert list(fig.data[0].y) == [2]
