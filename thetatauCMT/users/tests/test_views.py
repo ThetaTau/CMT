@@ -116,6 +116,64 @@ def test_profile_status_changes_hidden_from_other_chapter_member(auto_login_user
     assert response.context["can_view_status_changes"] is False
 
 
+@pytest.mark.django_db
+def test_profile_status_changes_include_requests_resignations_and_depledges(auto_login_user, user_factory):
+    import datetime
+
+    from django.utils import timezone
+    from viewflow.activation import STATUS
+
+    from thetatauCMT.forms.flows import ResignationFlow, ReturnStudentFlow
+    from thetatauCMT.forms.models import PrematureAlumnus, ResignationProcess, ReturnStudent, StatusChange
+    from thetatauCMT.forms.tests.factories import DepledgeFactory, PrematureAlumnusFactory
+
+    client, officer = auto_login_user()
+    _make_officer(officer, client)
+    member = user_factory.create(chapter=officer.chapter)
+    now = timezone.now()
+
+    def days_ago(days):
+        return now - datetime.timedelta(days=days)
+
+    DepledgeFactory(user=member, date=days_ago(60).date(), created=days_ago(60))
+    StatusChange.objects.create(
+        user=member, created_by=officer, reason="withdraw", date_start=days_ago(50).date(), created=days_ago(50)
+    )
+    approved = PrematureAlumnusFactory(user=member, approved_exec=True, status=STATUS.DONE, finished=days_ago(30))
+    rejected = PrematureAlumnusFactory(user=member, approved_exec=False, status=STATUS.DONE, finished=days_ago(33))
+    pending = ReturnStudent.objects.create(flow_class=ReturnStudentFlow, user=member, reason="Back from co-op")
+    cancelled = ResignationProcess.objects.create(
+        flow_class=ResignationFlow,
+        user=member,
+        chapter=member.chapter,
+        officer1=officer,
+        officer2=officer,
+        status=STATUS.CANCELED,
+    )
+    # A process's created date is set on save; backdate it to fix the order.
+    for model, process, days in (
+        (PrematureAlumnus, approved, 40),
+        (PrematureAlumnus, rejected, 35),
+        (ReturnStudent, pending, 20),
+        (ResignationProcess, cancelled, 10),
+    ):
+        model.objects.filter(pk=process.pk).update(created=days_ago(days))
+
+    response = client.get(reverse("users:profile", kwargs={"username": member.username}))
+    rows = response.context["member_status_changes"]
+    assert [(row["type"], row["outcome"]) for row in rows] == [
+        ("Resignation", "Cancelled"),
+        ("Return Student", "Pending"),
+        ("Premature Alumnus", "Not approved"),
+        ("Premature Alumnus", "Approved"),
+        ("Withdraw from School", "Recorded"),
+        ("Depledge", "Recorded"),
+    ]
+    # Only an approved request changed the member's status, on the day it was approved.
+    assert [row["date"] for row in rows[:4]] == [None, None, None, days_ago(30)]
+    assert b"Outcome" in response.content
+
+
 # ---------------------------------------------------------------------------
 # UserListView — national officer only
 # ---------------------------------------------------------------------------

@@ -561,17 +561,17 @@
                         <th>Change Date</th>
                         <th>End Date</th>
                         <th>Submitted</th>
+                        <th>Outcome</th>
                       </tr>
                     </thead>
                     <tbody>
                       {% for change in member_status_changes %}
                         <tr>
-                          <td>{{ change.get_reason_display }}</td>
-                          <td class="text-nowrap">{{ change.date_start|date:"M j, Y" }}</td>
-                          <td class="text-nowrap">
-                            {% if change.date_end and change.date_end.year < 3000 %}{{ change.date_end|date:"M j, Y" }}{% else %}None{% endif %}
-                          </td>
-                          <td class="text-nowrap">{{ change.created|date:"M j, Y" }}</td>
+                          <td>{{ change.type }}</td>
+                          <td class="text-nowrap">{% if change.date %}{{ change.date|date:"M j, Y" }}{% else %}None{% endif %}</td>
+                          <td class="text-nowrap">{% if change.end %}{{ change.end|date:"M j, Y" }}{% else %}None{% endif %}</td>
+                          <td class="text-nowrap">{{ change.submitted|date:"M j, Y" }}</td>
+                          <td>{{ change.outcome }}</td>
                         </tr>
                       {% endfor %}
                     </tbody>

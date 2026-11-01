@@ -378,14 +378,13 @@ class UserProfileView(LoginRequiredMixin, DetailView):
             context["attendance_form"] = MemberAttendanceForm(member=target)
             context["attendance_add_url"] = reverse("attendance:member_add", kwargs={"username": target.username})
 
-        # Member status changes (graduation, co-op, transfer, etc.) — visible to
-        # the member, a chapter officer of their chapter, and National Officers.
+        # Member status changes (graduation, co-op, premature alumnus, resignation
+        # and so on), visible to the member, a chapter officer of their chapter,
+        # and National Officers.
         can_view_status_changes = is_owner or is_target_chapter_officer or is_natoff or is_superuser
         context["can_view_status_changes"] = can_view_status_changes
         if can_view_status_changes:
-            context["member_status_changes"] = target.status_changes.select_related(
-                "new_school", "new_school_other", "employer"
-            ).order_by("-created")
+            context["member_status_changes"] = _profile_status_changes(target)
 
         if is_natoff or is_superuser:
             note_table = UserNoteTable(target.notes.all())
@@ -444,6 +443,57 @@ def _profile_big_little(target, viewer, is_owner):
         "edit_url": edit_url if initiated else "",
         "tree_url": tree_url,
     }
+
+
+def _profile_status_changes(target):
+    """Every status change on file for ``target``, newest submission first.
+
+    Status change reports and depledges apply as filed. Premature alumnus, return
+    student and resignation requests change the status only once approved.
+    """
+    from viewflow.activation import STATUS
+
+    from thetatauCMT.forms.models import Depledge, ResignationProcess
+    from thetatauCMT.forms.views import STATUS_CHANGE_TYPES
+
+    rows = [
+        {
+            "type": STATUS_CHANGE_TYPES.get(change.reason, {}).get("label") or change.get_reason_display(),
+            "date": change.date_start,
+            # An open-ended change ends on a far-future placeholder date.
+            "end": change.date_end if change.date_end and change.date_end.year < 3000 else None,
+            "submitted": change.created,
+            "outcome": "Recorded",
+        }
+        for change in target.status_changes.all()
+    ]
+    rows += [
+        {"type": "Depledge", "date": depledge.date, "end": None, "submitted": depledge.created, "outcome": "Recorded"}
+        for depledge in Depledge.objects.filter(user=target)
+    ]
+    requests = [
+        ("Premature Alumnus", target.prealumn_form.all()),
+        ("Return Student", target.return_form.all()),
+        ("Resignation", ResignationProcess.objects.filter(user=target)),
+    ]
+    for label, processes in requests:
+        for process in processes:
+            if process.status == STATUS.CANCELED:
+                outcome = "Cancelled"
+            elif process.finished is None:
+                outcome = "Pending"
+            else:
+                outcome = "Approved" if process.approved_exec else "Not approved"
+            rows.append(
+                {
+                    "type": label,
+                    "date": process.finished if outcome == "Approved" else None,
+                    "end": None,
+                    "submitted": process.created,
+                    "outcome": outcome,
+                }
+            )
+    return sorted(rows, key=lambda row: row["submitted"], reverse=True)
 
 
 def _role_labels(current_roles):

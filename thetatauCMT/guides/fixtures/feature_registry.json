@@ -66,8 +66,8 @@
         {
           "key": "my-profile",
           "name": "My profile",
-          "short_description": "Your badge number, status, roles, Big and Littles, employment, service hours and award history.",
-          "long_description": "Admins can also see the member's internal ID number.",
+          "short_description": "Your badge number, status and status history, roles, Big and Littles, employment, service hours and award history.",
+          "long_description": "The Status Changes section lists every status change on file: graduation, co-op, military, withdrawal and transfer reports, depledges, and premature alumnus, return student and resignation requests with whether each was approved, is pending, was not approved or was cancelled. Only you, your chapter's officers, National Officers and Admins can see it. Admins can also see the member's internal ID number.",
           "url_name": "users:profile",
           "url_kwargs": {"username": "@username"}
         },
