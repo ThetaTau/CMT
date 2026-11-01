@@ -10,7 +10,7 @@ from datetime import timedelta
 from django.db.models import Count, Q
 from django.utils import timezone
 
-from core.models import TODAY_END
+from core.models import TODAY_END, academic_encompass_start_end_date
 
 # The same statuses as ``Chapter.actives()``.
 ACTIVE_STATUSES = ["active", "activepend", "alumnipend", "pendexpul", "activeCC"]
@@ -23,10 +23,14 @@ EXECUTIVE_OFFICERS = [
 ]
 
 
-def chapter_overview(chapters, today=None):
-    """One row per chapter: actives, PNMs, overdue tasks, balance and missing officers."""
+def chapter_overview(chapters, today=None, year=None):
+    """One row per chapter: actives, PNMs, overdue tasks, balance and missing officers, plus
+    transition reports and ballot votes for the academic year starting in ``year`` (default:
+    the one under way)."""
+    from thetatauCMT.ballots.models import Ballot
     from thetatauCMT.chapters.models import Chapter
     from thetatauCMT.tasks.models import TaskChapter, TaskDate
+    from thetatauCMT.transitions.services import get_chapter_compliance_stats
     from thetatauCMT.users.models import User
 
     today = today or timezone.localdate()
@@ -71,6 +75,12 @@ def chapter_overview(chapters, today=None):
     for chapter_id, current_roles in holders:
         filled[chapter_id].update(current_roles or [])
 
+    year_start, year_end = (day.date() for day in academic_encompass_start_end_date(year or today))
+    reports = {
+        stats.chapter.pk: stats for stats in get_chapter_compliance_stats(chapters, bounds=(year_start, year_end))
+    }
+    ballots = Ballot.chapter_turnout(chapters, year_start, year_end)
+
     return [
         {
             "chapter": chapter,
@@ -82,6 +92,10 @@ def chapter_overview(chapters, today=None):
                 if school_type in (chapter.school_type, "all") and (chapter.pk, pk) not in done
             ),
             "missing": [title for role, title in EXECUTIVE_OFFICERS if role not in filled[chapter.pk]],
+            "reports_submitted": reports[chapter.pk].submitted,
+            "reports_due": reports[chapter.pk].total,
+            "ballots_voted": ballots[chapter.pk][0],
+            "ballots_eligible": ballots[chapter.pk][1],
         }
         for chapter in chapters
     ]

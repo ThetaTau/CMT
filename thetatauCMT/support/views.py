@@ -100,6 +100,7 @@ class CSSLandingView(LoginRequiredMixin, TemplateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
+        from thetatauCMT.chapters.models import min_chapter_size
         from thetatauCMT.contact_sync.context import build_sync_modal_context
         from thetatauCMT.contact_sync.officers import SUPPORT_SCOPE as CONTACTS_SCOPE
         from thetatauCMT.guides.services import get_whats_new
@@ -109,9 +110,13 @@ class CSSLandingView(LoginRequiredMixin, TemplateView):
         user = self.request.user
         whats_new = get_whats_new(user, include_acknowledged=True)
         rows = chapter_overview(css_chapters(user))
+        minimum = min_chapter_size()
+        for row in rows:
+            row["below_minimum"] = row["actives"] + row["pnms"] < minimum
         context.update(
             {
                 "rows": rows,
+                "minimum_size": minimum,
                 "viewing": user.current_chapter,
                 "member": is_member_account(user),
                 "dashboard_scope": SUPPORT_SCOPE,

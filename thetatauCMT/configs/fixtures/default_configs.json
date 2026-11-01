@@ -258,5 +258,15 @@
         "description": "The date (YYYY-MM-DD) from which every National Officer must use two-factor sign-in. Until then, National Officers without it see a banner with the date. Blank means no requirement for National Officers. Admins and Chapter Support Specialists always need it.",
         "modified": "2026-10-22T00:00:00Z"
     }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "DASHBOARD_MIN_CHAPTER_SIZE",
+        "value": "",
+        "description": "Minimum chapter size, in student members (actives and PNMs). Chapters below it are flagged on the Chapter Health tab of the region and national dashboards and on My Chapters. A whole number; blank means 10.",
+        "modified": "2026-11-01T00:00:00Z"
+    }
 }
 ]

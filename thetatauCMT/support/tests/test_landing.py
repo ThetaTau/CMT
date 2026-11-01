@@ -12,6 +12,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django_userforeignkey.request import set_current_request
 
+from core.models import academic_encompass_start_end_date
 from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.regions.dashboard import SUPPORT_SCOPE, get_scope_chapters, populate_support_chapters, store_region
 from thetatauCMT.support.overview import chapter_overview
@@ -138,7 +139,8 @@ def test_the_table_costs_the_same_queries_however_many_chapters():
     with CaptureQueriesContext(connection) as large:
         chapter_overview(three)
 
-    assert len(small) == len(large) <= 4
+    # Four for the original columns, two each for transition reports and ballot votes.
+    assert len(small) == len(large) <= 8
 
 
 # --- the dashboard is held to their chapters on the server (Q12 C) -------------------------------
@@ -238,3 +240,56 @@ def test_an_edited_dashboard_request_still_shows_only_their_chapters(auto_login_
     assert response.status_code == 200, response.content[:500]
     body = response.content.decode()
     assert alpha.name in body and delta.name not in body
+
+
+def _obligation(chapter, position_key, status, due):
+    from thetatauCMT.transitions.models import ReportObligation
+
+    return ReportObligation.objects.create(
+        chapter=chapter,
+        position_type="CHAPTER_OFFICER",
+        position_key=position_key,
+        term_start=due - datetime.timedelta(days=300),
+        term_end=due + datetime.timedelta(days=14),
+        due_date=due,
+        status=status,
+    )
+
+
+def test_the_table_counts_the_years_transition_reports_and_ballot_votes():
+    from thetatauCMT.ballots.models import Ballot, BallotComplete
+
+    alpha = ChapterFactory(name="alpha")
+    regent = make_regent(chapter=alpha)
+    # The 2025-26 academic year; its ballots have closed.
+    today = datetime.date(2025, 11, 1)
+    _obligation(alpha, "regent", "submitted", datetime.date(2026, 4, 17))
+    _obligation(alpha, "scribe", "open", datetime.date(2026, 4, 17))
+    _obligation(alpha, "treasurer", "submitted", datetime.date(2025, 4, 17))
+    ballots = [
+        Ballot.objects.create(
+            name=f"Year ballot {n}", type="other", description="Vote", due_date=due, voters=["all_chapters"]
+        )
+        for n, due in enumerate((datetime.date(2025, 10, 1), datetime.date(2026, 3, 1), datetime.date(2024, 10, 1)))
+    ]
+    BallotComplete.objects.create(user=regent, ballot=ballots[0], motion="aye", role="regent")
+
+    (row,) = chapter_overview([alpha], today=today)
+    assert (row["reports_submitted"], row["reports_due"]) == (1, 2)
+    assert (row["ballots_voted"], row["ballots_eligible"]) == (1, 2)
+
+
+def test_my_chapters_shows_transition_reports_ballot_votes_and_small_chapters(auto_login_user):
+    from thetatauCMT.chapters.models import DEFAULT_MIN_CHAPTER_SIZE
+
+    css, (alpha,) = assigned_css("alpha")
+    UserFactory(chapter=alpha, status="active")
+    due = academic_encompass_start_end_date()[0].date() + datetime.timedelta(days=200)
+    _obligation(alpha, "regent", "submitted", due)
+    _obligation(alpha, "scribe", "open", due)
+    client, _ = auto_login_user(user=css)
+
+    content = client.get(reverse("support:my_chapters")).content.decode()
+    assert "Transition reports" in content and "Ballot votes" in content
+    assert "1 of 2" in content
+    assert f"Below {DEFAULT_MIN_CHAPTER_SIZE} members" in content

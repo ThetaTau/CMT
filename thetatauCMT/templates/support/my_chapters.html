@@ -29,6 +29,8 @@
           <th scope="col" class="text-end">{% trans "Overdue tasks" %}</th>
           <th scope="col" class="text-end">{% trans "Balance" %}</th>
           <th scope="col">{% trans "Missing officers" %}</th>
+          <th scope="col" class="text-end">{% trans "Transition reports" %}</th>
+          <th scope="col" class="text-end">{% trans "Ballot votes" %}</th>
           <th scope="col"><span class="visually-hidden">{% trans "Switch" %}</span></th>
         </tr>
       </thead>
@@ -38,6 +40,7 @@
             <td>
               <a href="{% url 'chapters:detail' row.chapter.slug %}">{{ row.chapter.name }}</a>
               {% if row.chapter.pk == viewing.pk %}<span class="badge bg-secondary ms-1">{% trans "Viewing" %}</span>{% endif %}
+              {% if row.below_minimum %}<span class="badge text-bg-warning ms-1">{% blocktrans with minimum=minimum_size %}Below {{ minimum }} members{% endblocktrans %}</span>{% endif %}
             </td>
             <td class="text-end">{{ row.actives }}</td>
             <td class="text-end">{{ row.pnms }}</td>
@@ -47,6 +50,16 @@
               {% if row.chapter.balance_date %}<div class="small text-muted">{% blocktrans with day=row.chapter.balance_date|date:"M j, Y" %}as of {{ day }}{% endblocktrans %}</div>{% endif %}
             </td>
             <td>{% if row.missing %}{{ row.missing|join:", " }}{% else %}<span class="text-muted">{% trans "None" %}</span>{% endif %}</td>
+            <td class="text-end">
+              {% if row.reports_due %}
+                {% blocktrans with submitted=row.reports_submitted due=row.reports_due %}{{ submitted }} of {{ due }}{% endblocktrans %}
+              {% else %}<span class="text-muted">{% trans "None" %}</span>{% endif %}
+            </td>
+            <td class="text-end">
+              {% if row.ballots_eligible %}
+                {% blocktrans with voted=row.ballots_voted eligible=row.ballots_eligible %}{{ voted }} of {{ eligible }}{% endblocktrans %}
+              {% else %}<span class="text-muted">{% trans "None" %}</span>{% endif %}
+            </td>
             <td class="text-end">
               {% if row.chapter.pk != viewing.pk %}
                 <form method="post" action="{% url 'support:switch' %}">
@@ -64,6 +77,12 @@
       </tbody>
     </table>
   </div>
+  <p class="small text-muted">
+    {% blocktrans trimmed %}
+      Transition reports and ballot votes cover this academic year: reports submitted out of those due,
+      and votes cast out of the ballots that have closed.
+    {% endblocktrans %}
+  </p>
 {% else %}
   <p>{% trans "No chapters assigned. Contact the Central Office." %}</p>
 {% endif %}

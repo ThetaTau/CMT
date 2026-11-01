@@ -571,3 +571,15 @@ def test_get_email_specific_includes_current_officer_email(chapter, user_factory
     emails = chapter.get_email_specific(roles=["regent"])
     # Should include the officer's email
     assert regent.email in emails
+
+
+@pytest.mark.django_db
+def test_min_chapter_size_comes_from_config_with_a_default():
+    from thetatauCMT.chapters.models import DEFAULT_MIN_CHAPTER_SIZE, MIN_CHAPTER_SIZE_CONFIG_KEY, min_chapter_size
+    from thetatauCMT.configs.models import Config
+
+    assert min_chapter_size() == DEFAULT_MIN_CHAPTER_SIZE
+    Config.objects.create(key=MIN_CHAPTER_SIZE_CONFIG_KEY, value="<p>twelve</p>", description="")
+    assert min_chapter_size() == DEFAULT_MIN_CHAPTER_SIZE
+    Config.objects.create(key=MIN_CHAPTER_SIZE_CONFIG_KEY, value="<p>12</p>", description="")
+    assert min_chapter_size() == 12

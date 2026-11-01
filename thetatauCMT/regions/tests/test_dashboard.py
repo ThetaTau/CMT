@@ -7,9 +7,11 @@ test DB.
 """
 
 import datetime
+from decimal import Decimal
 
 import plotly.graph_objects as go
 import pytest
+from django.utils import timezone
 
 # ---------------------------------------------------------------------------
 # parse_region_slug
@@ -256,14 +258,16 @@ def test_get_scope_chapters_candidate_chapter_filter():
 
 
 @pytest.mark.django_db
-def test_update_kpis_returns_nine_values():
-    from thetatauCMT.regions.dashboard import update_kpis
+def test_update_kpis_returns_each_card_then_its_note():
+    from thetatauCMT.regions.dashboard import KPI_CARDS, update_kpis
 
     result = update_kpis("national", None)
     assert isinstance(result, tuple)
-    assert len(result) == 9
+    assert len(result) == 2 * len(KPI_CARDS)
     for v in result:
         assert isinstance(v, str)
+    # Notes only appear for a National Officer on a region page.
+    assert result[len(KPI_CARDS) :] == ("",) * len(KPI_CARDS)
 
 
 @pytest.mark.django_db
@@ -304,6 +308,8 @@ def test_ay_dates_none_defaults_to_current():
         "submissions_by_chapter",
         "tasks_by_chapter",
         "trainings_by_chapter",
+        "gpa_by_chapter",
+        "service_hours_by_chapter",
         "scores_total_by_chapter",
         "scores_bro_by_chapter",
         "scores_ops_by_chapter",
@@ -313,6 +319,8 @@ def test_ay_dates_none_defaults_to_current():
         "retention_by_chapter",
         "graduation_employer_cloud",
         "member_organization_cloud",
+        "placement_by_chapter",
+        "graduates_by_degree",
     ],
 )
 def test_ay_dependent_graph_callbacks_return_figure(callback_name):
@@ -509,3 +517,486 @@ def test_graduates_count_members_with_a_graduation_in_the_academic_year():
     assert update_kpis(region.slug, 2025)[4] == "2"
     fig = graduates_by_chapter(region.slug, 2025, "light")
     assert list(fig.data[0].y) == [2]
+
+
+# ---------------------------------------------------------------------------
+# Region pages: what a National Officer sees, and the chapter-level charts
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def view_as(db):
+    """Serve callbacks to ``user``, as the dashboard's pages do."""
+    from django.test import RequestFactory
+    from django_userforeignkey.request import set_current_request
+
+    def bind(user):
+        request = RequestFactory().get("/")
+        request.user = user
+        set_current_request(request)
+        return user
+
+    yield bind
+    set_current_request(None)
+
+
+@pytest.fixture
+def natoff_viewer(view_as):
+    """A signed-in National Officer, as on the region pages."""
+    from django.contrib.auth.models import Group
+
+    from thetatauCMT.users.models import User
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    user = UserFactory()
+    Group.objects.get_or_create(name="natoff")[0].user_set.add(user)
+    return view_as(User.objects.get(pk=user.pk))
+
+
+def _region(name):
+    from thetatauCMT.regions.tests.factories import RegionFactory
+
+    return RegionFactory(name=name)
+
+
+def _chapter(region, name=None, **fields):
+    """A chapter in ``region``; pass a Greek ``name`` when a test needs two of them."""
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+
+    chapter = ChapterFactory(**({"name": name} if name else {}))
+    chapter.region = region
+    for field, value in fields.items():
+        setattr(chapter, field, value)
+    chapter.save()
+    return chapter
+
+
+def _member(chapter, **fields):
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    return UserFactory(chapter=chapter, **fields)
+
+
+def _senior_year():
+    """The graduation year of this academic year's seniors."""
+    from core.models import academic_encompass_start_end_date
+
+    return academic_encompass_start_end_date()[1].year
+
+
+@pytest.mark.django_db
+def test_kpi_notes_compare_each_card_with_the_year_before(natoff_viewer):
+    from thetatauCMT.forms.tests.factories import InitiationFactory
+    from thetatauCMT.regions.dashboard import KPI_CARDS, update_kpis
+
+    region = _region("KPI Notes Region")
+    chapter = _chapter(region)
+    for day in (datetime.date(2025, 10, 1), datetime.date(2026, 2, 1), datetime.date(2024, 10, 1)):
+        InitiationFactory(user=_member(chapter), chapter=chapter, date=day)
+
+    kpis = update_kpis(region.slug, 2025)
+    notes = dict(zip((card_id for card_id, _, _ in KPI_CARDS), kpis[len(KPI_CARDS) :]))
+    assert kpis[3] == "2"
+    assert notes["kpi-initiations"] == "▲ 1 (100%) vs AY 2024–25"
+    assert notes["kpi-graduates"] == "No change vs AY 2024–25"
+    # No PNMs in either year, so there is no retention to compare.
+    assert notes["kpi-retention"] == ""
+    assert notes["kpi-total-members"].endswith("vs a year ago")
+    # The member home page keeps its cards as they were.
+    assert update_kpis(f"chapter_{chapter.slug}", 2025)[len(KPI_CARDS) :] == ("",) * len(KPI_CARDS)
+
+
+@pytest.mark.parametrize(
+    "today, graduation_year, standing",
+    [
+        (datetime.date(2026, 11, 1), 2031, "Freshman"),
+        (datetime.date(2026, 11, 1), 2030, "Freshman"),
+        (datetime.date(2026, 11, 1), 2029, "Sophomore"),
+        (datetime.date(2026, 11, 1), 2028, "Junior"),
+        (datetime.date(2026, 11, 1), 2027, "Senior"),
+        # A December graduate.
+        (datetime.date(2026, 11, 1), 2026, "Senior"),
+        (datetime.date(2026, 11, 1), 2025, "5th year +"),
+        (datetime.date(2027, 3, 1), 2027, "Senior"),
+        (datetime.date(2027, 3, 1), 2026, "5th year +"),
+    ],
+)
+def test_class_standing_counts_the_years_to_graduation(today, graduation_year, standing):
+    from thetatauCMT.regions.dashboard import class_standing
+
+    assert class_standing(graduation_year, today) == standing
+
+
+@pytest.mark.django_db
+def test_class_year_mix_counts_one_chapters_student_members_by_class():
+    from thetatauCMT.regions.dashboard import CLASS_STANDINGS, class_year_mix
+
+    chapter = _chapter(_region("Class Mix Region"))
+    _member(chapter, current_status="active", graduation_year=_senior_year())
+    _member(chapter, current_status="active", graduation_year=_senior_year() + 3)
+    _member(chapter, current_status="pnm", graduation_year=_senior_year() + 3)
+    _member(chapter, current_status="alumni", graduation_year=_senior_year() + 1)
+
+    fig = class_year_mix(f"chapter_{chapter.slug}", "light")
+    assert list(fig.data[0].x) == CLASS_STANDINGS
+    assert list(fig.data[0].y) == [2, 0, 0, 1, 0]
+
+
+@pytest.mark.django_db
+def test_class_year_mix_puts_chapters_about_to_lose_the_most_members_first():
+    from thetatauCMT.regions.dashboard import class_year_mix
+
+    region = _region("Class Mix Rollup Region")
+    young = _chapter(region, "alpha")
+    old = _chapter(region, "beta")
+    _member(young, current_status="active", graduation_year=_senior_year() + 3)
+    _member(young, current_status="active", graduation_year=_senior_year())
+    _member(old, current_status="active", graduation_year=_senior_year())
+
+    fig = class_year_mix(region.slug, "light")
+    seniors = next(trace for trace in fig.data if trace.name == "Senior")
+    assert list(seniors.x) == [old.name, young.name]
+    assert list(seniors.y) == [100.0, 50.0]
+
+
+@pytest.mark.django_db
+def test_gpa_shows_one_chapters_terms_and_rolls_up_by_chapter():
+    from thetatauCMT.regions.dashboard import gpa_by_chapter
+    from thetatauCMT.users.models import UserSemesterGPA
+
+    region = _region("GPA Region")
+    chapter = _chapter(region)
+    first, second = _member(chapter), _member(chapter)
+    for user, year, term, gpa in [
+        (first, 2025, "fa", 3.0),
+        (second, 2025, "fa", 4.0),
+        (first, 2026, "sp", 3.2),
+        # The next academic year.
+        (first, 2026, "fa", 1.0),
+    ]:
+        UserSemesterGPA.objects.create(user=user, year=year, term=term, gpa=gpa)
+
+    fig = gpa_by_chapter(f"chapter_{chapter.slug}", 2025, "light")
+    assert list(fig.data[0].x) == ["Fall 2025", "Spring 2026"]
+    assert [round(value, 2) for value in fig.data[0].y] == [3.5, 3.2]
+    assert list(fig.data[0].customdata) == [2, 1]
+
+    fig = gpa_by_chapter(region.slug, 2025, "light")
+    assert list(fig.data[0].y) == [3.4]
+    assert fig.layout.shapes[0].y0 == pytest.approx(3.4)
+
+
+@pytest.mark.django_db
+def test_service_hours_show_one_chapters_terms_and_the_average_chapter():
+    from thetatauCMT.regions.dashboard import service_hours_by_chapter
+    from thetatauCMT.users.models import UserSemesterServiceHours
+
+    region = _region("Service Region")
+    alpha = _chapter(region, "alpha")
+    beta = _chapter(region, "beta")
+    for user, year, term, hours in [
+        (_member(alpha), 2025, "fa", 10),
+        (_member(alpha), 2026, "sp", 20),
+        (_member(beta), 2026, "sp", 6),
+    ]:
+        UserSemesterServiceHours.objects.create(user=user, year=year, term=term, service_hours=hours)
+
+    fig = service_hours_by_chapter(f"chapter_{alpha.slug}", 2025, "light")
+    assert list(fig.data[0].x) == ["Fall 2025", "Spring 2026"]
+    assert list(fig.data[0].y) == [10, 20]
+
+    fig = service_hours_by_chapter(region.slug, 2025, "light")
+    assert {name: hours for trace in fig.data for name, hours in zip(trace.x, trace.y)} == {"alpha": 30, "beta": 6}
+    assert fig.layout.shapes[0].y0 == pytest.approx(18)
+
+
+@pytest.mark.django_db
+def test_region_panels_need_a_national_officer_on_a_region_page(natoff_viewer, view_as):
+    from thetatauCMT.regions import dashboard as d
+
+    region = _region("Gated Region")
+    chapter = _chapter(region)
+    _member(chapter, current_status="active", last_login=timezone.now())
+
+    assert d.chapter_health(region.slug, None)[-1] is not None
+    assert len(d.cmt_use_by_chapter(region.slug, "light").data) == 2
+    # The home page and a CSS's landing page fix the scope, even for a National Officer.
+    assert d.chapter_health(f"chapter_{chapter.slug}", None)[-1] is None
+    assert d.chapter_health(d.SUPPORT_SCOPE, None)[-1] is None
+
+    # The browser names the scope, so a member asking for a region gets nothing.
+    view_as(_member(chapter, current_status="active"))
+    assert d.chapter_health(region.slug, None)[-1] is None
+    assert len(d.cmt_use_by_chapter(region.slug, "light").data) == 0
+    assert len(d.membership_trends(region.slug, "light").data) == 0
+
+
+@pytest.mark.django_db
+def test_a_css_sees_notes_trends_and_cmt_use_for_their_own_chapters(view_as):
+    from thetatauCMT.regions import dashboard as d
+    from thetatauCMT.support.tests.factories import ChapterSupportAssignmentFactory, make_css
+    from thetatauCMT.users.models import User
+
+    region = _region("CSS Region")
+    mine = _chapter(region, "alpha")
+    other = _chapter(region, "beta")
+    for chapter in (mine, other):
+        _member(chapter, current_status="active", last_login=timezone.now())
+    css = make_css()
+    ChapterSupportAssignmentFactory(user=css, chapter=mine)
+    view_as(User.objects.get(pk=css.pk))
+    first_note = len(d.KPI_CARDS)
+
+    kpis = d.update_kpis(d.SUPPORT_SCOPE, None)
+    assert kpis[0] == "1"
+    assert kpis[first_note].endswith("vs a year ago")
+    assert d.update_kpis(f"chapter_{mine.slug}", None)[first_note].endswith("vs a year ago")
+    cmt_use = d.cmt_use_by_chapter(d.SUPPORT_SCOPE, "light")
+    assert {name for trace in cmt_use.data for name in trace.x} == {mine.name}
+    assert len(d.membership_trends(d.SUPPORT_SCOPE, "light").data) == 3
+    # The rest stays on the region pages.
+    assert d.chapter_health(d.SUPPORT_SCOPE, None)[-1] is None
+    assert len(d.alumni_reach(d.SUPPORT_SCOPE, "light").data) == 0
+    assert len(d.programs_by_year(d.SUPPORT_SCOPE, "light").data) == 0
+    # Nothing for a chapter they do not support, whatever the browser asks for.
+    assert d.update_kpis(f"chapter_{other.slug}", None)[first_note] == ""
+    assert len(d.cmt_use_by_chapter(f"chapter_{other.slug}", "light").data) == 0
+
+
+def test_extra_panels_show_on_the_region_pages_and_partly_on_a_css_landing_page():
+    from thetatauCMT.regions.dashboard import REGION_AND_CSS_IDS, REGION_ONLY_IDS, toggle_region_only
+
+    shown, hidden = {}, {"display": "none"}
+    region_only, region_and_css = len(REGION_ONLY_IDS), len(REGION_AND_CSS_IDS)
+    assert toggle_region_only(None) == [shown] * (region_only + region_and_css)
+    assert toggle_region_only("support") == [hidden] * region_only + [shown] * region_and_css
+    assert toggle_region_only("chapter_alpha") == [hidden] * (region_only + region_and_css)
+
+
+@pytest.mark.django_db
+def test_chapter_health_rolls_up_size_tasks_balance_seats_reports_and_ballots(natoff_viewer):
+    from core.models import academic_encompass_start_end_date
+    from thetatauCMT.ballots.models import Ballot, BallotComplete
+    from thetatauCMT.chapters.models import MIN_CHAPTER_SIZE_CONFIG_KEY
+    from thetatauCMT.configs.models import Config
+    from thetatauCMT.regions import dashboard as d
+    from thetatauCMT.transitions.models import ReportObligation
+
+    Config.objects.create(key=MIN_CHAPTER_SIZE_CONFIG_KEY, value="2", description="")
+    region = _region("Health Region")
+    small = _chapter(region, "alpha", balance=Decimal("125.25"))
+    large = _chapter(region, "beta", balance=Decimal("-20"))
+    _member(small, current_status="active")
+    regent = _member(large, current_status="active", current_roles=["regent"])
+    _member(large, current_status="active")
+    _member(large, current_status="pnm")
+
+    # Last academic year, so its ballots have closed.
+    ay = academic_encompass_start_end_date()[0].year - 1
+    for position_key, status in (("regent", "submitted"), ("scribe", "open")):
+        ReportObligation.objects.create(
+            chapter=small,
+            position_type="CHAPTER_OFFICER",
+            position_key=position_key,
+            term_start=datetime.date(ay, 7, 1),
+            term_end=datetime.date(ay + 1, 5, 1),
+            due_date=datetime.date(ay + 1, 4, 17),
+            status=status,
+        )
+    ballots = [
+        Ballot.objects.create(
+            name=f"Health ballot {n}", type="other", description="Vote", due_date=due, voters=["all_chapters"]
+        )
+        for n, due in enumerate((datetime.date(ay, 10, 1), datetime.date(ay + 1, 3, 1)))
+    ]
+    BallotComplete.objects.create(user=regent, ballot=ballots[0], motion="aye", role="regent")
+
+    rows = d.chapter_health_rows(d.get_scope_chapters(region.slug), ay)
+    assert [row["chapter"].pk for row in rows] == [small.pk, large.pk]
+    by_chapter = {row["chapter"].pk: row for row in rows}
+    assert by_chapter[small.pk]["members"] == 1
+    assert by_chapter[large.pk]["members"] == 3
+    assert by_chapter[small.pk]["missing"] == [
+        "Regent",
+        "Scribe",
+        "Vice Regent",
+        "Treasurer",
+        "Corresponding Secretary",
+    ]
+    assert "Regent" not in by_chapter[large.pk]["missing"]
+    assert (by_chapter[small.pk]["reports_submitted"], by_chapter[small.pk]["reports_due"]) == (1, 2)
+    assert (by_chapter[large.pk]["ballots_voted"], by_chapter[large.pk]["ballots_eligible"]) == (1, 2)
+    assert (by_chapter[small.pk]["ballots_voted"], by_chapter[small.pk]["ballots_eligible"]) == (0, 2)
+
+    cards = d.chapter_health(region.slug, ay)
+    overdue = str(sum(bool(row["overdue"]) for row in rows))
+    assert cards[:6] == ["1", overdue, "$125", "9", "50%", "25%"]
+    assert cards[6] == "fewer than 2 student members"
+    first_row = cards[7].children[2].children[0]
+    assert first_row.children[2].children[1].children == "Below 2"
+
+
+@pytest.mark.django_db
+def test_chapter_counts_split_active_candidate_and_closed_chapters(natoff_viewer):
+    from thetatauCMT.regions import dashboard as d
+
+    region = _region("Counts Region")
+    _chapter(region, "alpha", recognition="fraternity", school_type="semester")
+    _chapter(region, "beta", candidate_chapter=True, recognition="org", school_type="quarter")
+    _chapter(region, "delta", active=False)
+
+    values = d.chapter_counts(region.slug, "light")
+    assert values[:3] == ["1", "1", "1"]
+    assert dict(zip(values[3].data[0].y, values[3].data[0].x)) == {
+        "Recognized as a Fraternity": 1,
+        "Recognized as a Student Organization NOT a Fraternity": 1,
+    }
+    assert dict(zip(values[4].data[0].y, values[4].data[0].x)) == {"Semester": 1, "Quarter": 1}
+
+
+@pytest.mark.django_db
+def test_membership_trends_count_each_academic_year(natoff_viewer):
+    from core.models import academic_encompass_start_end_date
+    from thetatauCMT.forms.tests.factories import InitiationFactory, StatusChangeFactory
+    from thetatauCMT.regions import dashboard as d
+    from thetatauCMT.users.models import UserStatusChange
+
+    region = _region("Trends Region")
+    chapter = _chapter(region, "alpha")
+    elsewhere = _chapter(_region("Elsewhere Region"), "beta")
+    current = academic_encompass_start_end_date()[0].year
+    UserStatusChange.objects.create(
+        user=_member(chapter),
+        status="active",
+        start=timezone.localdate() - datetime.timedelta(days=800),
+        end=datetime.date(2100, 1, 1),
+    )
+    # Initiated by this chapter, a member of another one now.
+    InitiationFactory(user=_member(elsewhere), chapter=chapter, date=datetime.date(current - 1, 10, 1))
+    StatusChangeFactory(user=_member(chapter), reason="graduate", date_start=datetime.date(current, 1, 15))
+
+    initiations, graduates, members = d.membership_trends(region.slug, "light").data
+    assert list(initiations.y) == [0, 0, 0, 1, 0]
+    assert list(graduates.y) == [0, 0, 0, 1, 0]
+    assert list(members.y) == [0, 0, 1, 1, 1]
+    assert initiations.x[-1].endswith("(to date)")
+
+
+@pytest.mark.django_db
+def test_programs_by_year_count_awards_job_postings_and_nominations(natoff_viewer):
+    from thetatauCMT.awards.tests.factories import AwardGrantFactory
+    from thetatauCMT.jobs.models import Job
+    from thetatauCMT.nominations.tests.factories import NominationFactory
+    from thetatauCMT.regions import dashboard as d
+
+    region = _region("Programs Region")
+    member = _member(_chapter(region, "alpha"))
+    AwardGrantFactory(recipient_member=member)
+    job = Job.objects.create(
+        company="Acme",
+        description="Build things",
+        education_qualification=["bachelors"],
+        experience=["new_grad"],
+        job_type=["full_time"],
+        location_type=["remote"],
+        title="Engineer",
+        url="https://example.com/job",
+    )
+    # created_by fills from the signed-in viewer on save.
+    Job.objects.filter(pk=job.pk).update(created_by=member)
+    NominationFactory(nominee=member)
+
+    fig = d.programs_by_year(region.slug, "light")
+    assert {trace.name: list(trace.y) for trace in fig.data} == {
+        "Awards granted": [0, 0, 0, 0, 1],
+        "Job postings": [0, 0, 0, 0, 1],
+        "Volunteer nominations": [0, 0, 0, 0, 1],
+    }
+
+
+@pytest.mark.django_db
+def test_alumni_reach_counts_who_can_be_reached_by_email_and_mail(natoff_viewer):
+    from thetatauCMT.email_tracking.models import TrackedEmail
+    from thetatauCMT.regions import dashboard as d
+
+    region = _region("Reach Region")
+    chapter = _chapter(region, "alpha")
+    now = timezone.now()
+    reachable = _member(chapter, current_status="alumni")
+    _member(chapter, current_status="alumni", no_contact=True)
+    _member(chapter, current_status="alumni", unsubscribe_email=True, address=None)
+    bouncing = _member(chapter, current_status="alumni")
+    _member(chapter, current_status="alumni", deceased=True)
+    _member(chapter, current_status="active")
+    # An old bounce stops counting once a later message gets through.
+    month_ago = now - datetime.timedelta(days=30)
+    TrackedEmail.objects.create(
+        message_id="old", recipient=reachable.email, user=reachable, sent_at=month_ago, bounced_at=month_ago
+    )
+    TrackedEmail.objects.create(
+        message_id="new", recipient=reachable.email, user=reachable, sent_at=now, delivered_at=now
+    )
+    TrackedEmail.objects.create(
+        message_id="bounce", recipient=bouncing.email, user=bouncing, sent_at=now, bounced_at=now
+    )
+
+    fig = d.alumni_reach(region.slug, "light")
+    assert dict(zip(fig.data[0].y, fig.data[0].x)) == {
+        "Living alumni": 4,
+        "Open to contact": 3,
+        "Reachable by email": 1,
+        "Reachable by mail": 2,
+    }
+
+
+@pytest.mark.django_db
+def test_cmt_use_compares_officers_with_the_other_student_members(natoff_viewer):
+    from thetatauCMT.regions import dashboard as d
+
+    region = _region("CMT Use Region")
+    alpha = _chapter(region, "alpha")
+    beta = _chapter(region, "beta")
+    recently = timezone.now() - datetime.timedelta(days=10)
+    long_ago = timezone.now() - datetime.timedelta(days=200)
+    _member(alpha, current_status="active", current_roles=["regent"], last_login=recently)
+    _member(alpha, current_status="active", current_roles=["treasurer"], last_login=long_ago)
+    # A committee chair has no officer access, so counts with the other members.
+    _member(alpha, current_status="active", current_roles=["events chair"], last_login=recently)
+    _member(alpha, current_status="active", last_login=recently)
+    _member(alpha, current_status="pnm", last_login=long_ago)
+    _member(alpha, current_status="active", last_login=None)
+    _member(alpha, current_status="active", last_login=None)
+    _member(alpha, current_status="alumni", current_roles=["regent"], last_login=recently)
+    _member(beta, current_status="active", last_login=recently)
+
+    officers, others = d.cmt_use_by_chapter(region.slug, "light").data
+    assert list(officers.x) == list(others.x) == ["alpha", "beta"]
+    assert list(officers.y) == [50, None]
+    assert list(others.y) == [40, 100]
+    assert officers.name == "Officers (50% overall)"
+    assert others.name == "Other members (50% overall)"
+
+
+@pytest.mark.django_db
+def test_placement_and_degrees_describe_the_years_graduates(natoff_viewer):
+    from thetatauCMT.forms.tests.factories import EmployerFactory, StatusChangeFactory
+    from thetatauCMT.regions import dashboard as d
+
+    region = _region("Placement Region")
+    chapter = _chapter(region, "alpha")
+    StatusChangeFactory(
+        user=_member(chapter),
+        reason="graduate",
+        degree="bs",
+        date_start=datetime.date(2025, 12, 13),
+        employer=EmployerFactory(),
+    )
+    StatusChangeFactory(
+        user=_member(chapter), reason="graduate", degree="ms", date_start=datetime.date(2026, 5, 9), employer=None
+    )
+
+    fig = d.placement_by_chapter(region.slug, 2025, "light")
+    assert list(fig.data[0].y) == [50]
+    assert fig.layout.shapes[0].y0 == pytest.approx(50)
+    fig = d.graduates_by_degree(region.slug, 2025, "light")
+    assert dict(zip(fig.data[0].y, fig.data[0].x)) == {"Bachelor of Science": 1, "Master of Science": 1}

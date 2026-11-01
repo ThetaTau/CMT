@@ -1026,9 +1026,11 @@ class ChapterComplianceStats:
         return round(self.acknowledged / self.total * 100, 1)
 
 
-def get_chapter_compliance_stats(chapters, cycle=DEFAULT_CYCLE, position_key=""):
+def get_chapter_compliance_stats(chapters, cycle=DEFAULT_CYCLE, position_key="", bounds=None):
     """``[ChapterComplianceStats, ...]``, one row per chapter in ``chapters``
     (TRWI-9 regional/national rates views).
+
+    ``bounds``, a ``(start_date, end_date)`` pair, replaces ``cycle`` for any other academic year.
 
     Exactly 2 aggregate queries total, regardless of how many chapters are
     passed in (``.values("chapter_id").annotate(...)``, not one query per
@@ -1045,7 +1047,7 @@ def get_chapter_compliance_stats(chapters, cycle=DEFAULT_CYCLE, position_key="")
     chapters = list(chapters)
     chapter_by_id = {chapter.pk: chapter for chapter in chapters}
     obligations = ReportObligation.objects.filter(chapter_id__in=chapter_by_id)
-    start, end = get_cycle_bounds(cycle)
+    start, end = bounds or get_cycle_bounds(cycle)
     if start is not None:
         obligations = obligations.filter(due_date__gte=start, due_date__lt=end)
     if position_key:

@@ -392,6 +392,29 @@ class Ballot(TimeStampedModel):
             )
         )
 
+    @classmethod
+    def chapter_turnout(cls, chapters, start, end):
+        """{chapter pk: (ballots it voted on, ballots it could vote on)}, over ballots due in
+        ``[start, end)`` that have closed. Reads only whether a chapter voted, never how."""
+        closed = cls.objects.filter(due_date__gte=start, due_date__lt=end).exclude(
+            pk__in=cls.open_ballots().values("pk")
+        )
+        eligible = {group: set() for group in CHAPTER_VOTER_GROUPS}
+        for pk, voters in closed.values_list("pk", "voters"):
+            for group in CHAPTER_VOTER_GROUPS:
+                if group in voters:
+                    eligible[group].add(pk)
+        voted = set(
+            BallotComplete.objects.filter(
+                ballot__in=closed, role__in=BALLOT_CHAPTER_ROLES, user__chapter__in=chapters
+            ).values_list("user__chapter_id", "ballot_id")
+        )
+        turnout = {}
+        for chapter in chapters:
+            ballots = eligible[cls.chapter_group(chapter)]
+            turnout[chapter.pk] = (sum((chapter.pk, pk) in voted for pk in ballots), len(ballots))
+        return turnout
+
     def get_completed(self, user):
         query = self.completed.filter(user=user)
         return query.first()

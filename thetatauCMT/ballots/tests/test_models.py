@@ -601,3 +601,25 @@ def test_outstanding_for_user_is_empty_without_a_role():
 @pytest.mark.django_db
 def test_outstanding_for_user_is_empty_for_anonymous():
     assert list(Ballot.outstanding_for_user(AnonymousUser())) == []
+
+
+@pytest.mark.django_db
+def test_chapter_turnout_counts_a_chapters_votes_on_its_closed_ballots():
+    chapter = ChapterFactory(name="alpha")
+    candidate = ChapterFactory(name="beta", candidate_chapter=True)
+    today = timezone.localdate()
+    start, end = today - datetime.timedelta(days=100), today + datetime.timedelta(days=100)
+    closed = _create_ballot(
+        name="Turnout Closed", due_date=today - datetime.timedelta(days=30), voters=["all_chapters"]
+    )
+    _create_ballot(name="Turnout Open", due_date=today + datetime.timedelta(days=30), voters=["all_chapters"])
+    for_candidates = _create_ballot(
+        name="Turnout Candidates", due_date=today - datetime.timedelta(days=20), voters=["all_candidate_chapters"]
+    )
+    BallotComplete.objects.create(user=UserFactory(chapter=chapter), ballot=closed, motion="nay", role="regent")
+    # A National Officer's own vote is not the chapter's.
+    BallotComplete.objects.create(
+        user=UserFactory(chapter=chapter), ballot=for_candidates, motion="aye", role="grand regent"
+    )
+
+    assert Ballot.chapter_turnout([chapter, candidate], start, end) == {chapter.pk: (1, 1), candidate.pk: (0, 1)}

@@ -47,6 +47,19 @@ from .notifications import DuesReminder
 
 logger = logging.getLogger(__name__)
 
+# Chapters with fewer student members (actives and PNMs) than this are flagged on the
+# region and national dashboards and on My Chapters.
+MIN_CHAPTER_SIZE_CONFIG_KEY = "DASHBOARD_MIN_CHAPTER_SIZE"
+DEFAULT_MIN_CHAPTER_SIZE = 10
+
+
+def min_chapter_size():
+    """The configured minimum chapter size, or the default when blank or invalid."""
+    try:
+        return int(Config.get_value(MIN_CHAPTER_SIZE_CONFIG_KEY).strip())
+    except ValueError:
+        return DEFAULT_MIN_CHAPTER_SIZE
+
 
 class DuesAttachmentUploadError(Exception):
     def __init__(self, invoice_number):
