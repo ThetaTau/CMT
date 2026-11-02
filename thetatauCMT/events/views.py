@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.safestring import mark_safe
 from django.views.generic import CreateView, DetailView, ListView, RedirectView, TemplateView, UpdateView, View
 
 from core.forms import MultiFormsView
@@ -218,6 +219,20 @@ class EventCreateView(
 
     def _group_exists(self, group_name):
         return False
+
+    def forms_invalid(self, forms):
+        # The form reloads scrolled to the top, and a photo problem is only marked at
+        # the bottom, so without this note Submit looks like it did nothing.
+        message = "Your event was not saved. Fix the problems marked below."
+        if forms["picture"].total_error_count():
+            message += (
+                ' A photo under <a href="#picture">Add pictures</a> needs fixing: every photo needs a'
+                " description and a JPEG or PNG image (iPhone HEIC photos are not supported). Choose the"
+                " photo again, because it is cleared when the page reloads, or leave that row empty to"
+                " save the event without it."
+            )
+        messages.add_message(self.request, messages.ERROR, mark_safe(message))
+        return super().forms_invalid(forms)
 
     def forms_valid(self, forms):
         event_form = forms["event"]

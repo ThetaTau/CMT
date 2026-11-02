@@ -3,6 +3,7 @@ View tests for the events app.
 Uses the auto_login_user fixture which handles RMPSignMiddleware.
 """
 
+import base64
 import datetime
 import json
 import re
@@ -882,6 +883,100 @@ def test_create_and_add_attendance_redirects_to_roster(auto_login_user):
     assert response.status_code == 302
     event = Event.objects.get(name="Attn Redirect Event")
     assert response.url == event.get_attendance_url()
+
+
+# ===========================================================================
+# Photos on the create form: a rejected photo must say the event was not saved
+# ===========================================================================
+
+PNG_1PX = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+)
+
+
+def _photo_upload(name="party.png", content=PNG_1PX, content_type="image/png"):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    return SimpleUploadedFile(name, content, content_type=content_type)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "description, upload",
+    [
+        ("", lambda: _photo_upload()),
+        (
+            "Group photo, taken by Pat",
+            lambda: _photo_upload("IMG_1234.HEIC", b"\x00\x00\x00\x18ftypheic", "image/heic"),
+        ),
+        ("Group photo, taken by Pat", lambda: ""),
+    ],
+    ids=["photo-without-description", "not-a-readable-image", "description-without-photo"],
+)
+def test_create_event_with_a_rejected_photo_says_it_was_not_saved(auto_login_user, description, upload):
+    """Regression: a photo problem re-rendered the form at the top, the only error far
+    below in "Add pictures", so officers logging a past event saw Submit do nothing."""
+    client, user = auto_login_user()
+    _make_chapter_officer(user, client)
+    score_type = _evt_score_type()
+    if score_type is None:
+        pytest.skip("No Evt ScoreType in fixture")
+    data = _event_create_post_data(score_type, name="Past Bowling Night", date="2026-10-20")
+    data.update({"form-0-description": description, "form-0-image": upload()})
+
+    response = client.post(reverse("events:add"), data)
+
+    assert response.status_code == 200
+    assert not Event.objects.filter(name="Past Bowling Night").exists()
+    notices = [str(message) for message in response.context["messages"]]
+    assert any("was not saved" in notice and 'href="#picture"' in notice for notice in notices), notices
+
+
+@pytest.mark.django_db
+def test_create_event_with_a_described_photo_saves_both(auto_login_user, settings, tmp_path):
+    settings.MEDIA_ROOT = str(tmp_path)
+    client, user = auto_login_user()
+    _make_chapter_officer(user, client)
+    score_type = _evt_score_type()
+    if score_type is None:
+        pytest.skip("No Evt ScoreType in fixture")
+    data = _event_create_post_data(score_type, name="Past Bowling Night", date="2026-10-20")
+    data.update({"form-0-description": "Group photo, taken by Pat", "form-0-image": _photo_upload()})
+
+    response = client.post(reverse("events:add"), data)
+
+    assert response.status_code == 302
+    event = Event.objects.get(name="Past Bowling Night")
+    assert list(event.pictures.values_list("description", flat=True)) == ["Group photo, taken by Pat"]
+
+
+@pytest.mark.django_db
+def test_create_event_form_errors_say_it_was_not_saved(auto_login_user):
+    client, user = auto_login_user()
+    _make_chapter_officer(user, client)
+    score_type = _evt_score_type()
+    if score_type is None:
+        pytest.skip("No Evt ScoreType in fixture")
+    data = _event_create_post_data(score_type, name="Missing Duration")
+    data["duration"] = ""
+
+    response = client.post(reverse("events:add"), data)
+
+    assert response.status_code == 200
+    notices = [str(message) for message in response.context["messages"]]
+    assert any("was not saved" in notice for notice in notices), notices
+
+
+@pytest.mark.django_db
+def test_create_event_labels_the_photo_columns(auto_login_user):
+    client, user = auto_login_user()
+    _make_chapter_officer(user, client)
+
+    content = client.get(reverse("events:add")).content.decode()
+
+    assert "<th>Photo description and photographer</th>" in content
+    assert "<th>Photo</th>" in content
+    assert 'placeholder="e.g. Group photo at the park, taken by Jordan Lee"' in content
 
 
 @pytest.mark.django_db

@@ -77,7 +77,7 @@ class EventListFormHelper(FormHelper):
 
 
 class PictureForm(forms.ModelForm):
-    image = forms.ImageField()
+    image = forms.ImageField(label="Photo")
 
     class Meta:
         model = Picture
@@ -85,6 +85,10 @@ class PictureForm(forms.ModelForm):
             "description",
             "image",
         ]
+        labels = {"description": "Photo description and photographer"}
+        widgets = {
+            "description": forms.Textarea(attrs={"placeholder": "e.g. Group photo at the park, taken by Jordan Lee"}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

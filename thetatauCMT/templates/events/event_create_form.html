@@ -57,10 +57,7 @@
           <tr>
             {% for field in forms.picture.forms.0 %}
               {% if field.label and not field.is_hidden and field.label != "Delete" %}
-                <!-- <th for="{{ field.auto_id }}"
-                    class="col-form-label {% if field.field.required %}requiredField{% endif %}">
-                  {{ field.label|safe }}{% if field.field.required %}<span class="asteriskField">*</span>{% endif %}
-                </th> -->
+                <th>{{ field.label }}</th>
               {% endif %}
             {% endfor %}
             <th>Add / <br>Remove</th>
