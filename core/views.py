@@ -221,6 +221,22 @@ class OfficerRequiredMixin(GroupRequiredMixin):
         return reverse("home")
 
 
+class ChapterScopedQuerysetMixin:
+    """Limit a single-record view to the current chapter's records; any other is a 404.
+
+    National Officers and Admins reach every chapter's records (region pages link to
+    them). Everyone else reaches only ``current_chapter``: their own chapter, the one a
+    National Officer switched to, or the one a Chapter Support Specialist is viewing.
+    """
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = self.request.user
+        if user.is_admin or user.is_national_officer_group:
+            return queryset
+        return queryset.filter(chapter=user.current_chapter)
+
+
 class PagedFilteredTableView(SingleTableView):
     filter_class = None
     formhelper_class = None

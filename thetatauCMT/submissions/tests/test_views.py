@@ -601,3 +601,49 @@ def test_submission_update_keeps_the_submitter(auto_login_user):
     assert response.status_code == 302
     submission.refresh_from_db()
     assert (submission.name, submission.chapter, submission.user) == ("Renamed", home, submitter)
+
+
+def _detail_url(submission):
+    return reverse(
+        "submissions:detail",
+        kwargs={
+            "year": submission.date.year,
+            "month": submission.date.month,
+            "day": submission.date.day,
+            "slug": submission.slug,
+        },
+    )
+
+
+@pytest.mark.django_db
+def test_submission_detail_hides_another_chapters_submission(auto_login_user):
+    client, user = auto_login_user(user=_chapter_member(_chapter("alpha"), 9001))
+    submission = _newsletter(_chapter("beta"))
+
+    assert client.get(_detail_url(submission)).status_code == 404
+
+
+@pytest.mark.django_db
+def test_submission_detail_shows_the_viewers_own_chapter_on_a_shared_date_and_name(auto_login_user):
+    """The date + slug lookup took the earliest match, even from another chapter."""
+    _newsletter(_chapter("beta"))
+    home = _chapter("alpha")
+    own = _newsletter(home)
+    client, user = auto_login_user(user=_chapter_member(home, 9001))
+
+    response = client.get(_detail_url(own))
+
+    assert response.status_code == 200
+    assert response.context["object"] == own
+
+
+@pytest.mark.django_db
+def test_submission_detail_shows_national_officers_any_chapter(auto_login_user):
+    client, natoff = auto_login_user(user=_chapter_member(_chapter("alpha"), 9001))
+    _make_natoff(natoff, client)
+    submission = _newsletter(_chapter("beta"))
+
+    response = client.get(_detail_url(submission))
+
+    assert response.status_code == 200
+    assert response.context["object"] == submission

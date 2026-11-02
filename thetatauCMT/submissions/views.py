@@ -18,6 +18,7 @@ from django.views.generic import CreateView, DetailView, RedirectView, UpdateVie
 from core.forms import MultiFormsView
 from core.notifications import GenericEmail
 from core.views import (
+    ChapterScopedQuerysetMixin,
     LoginRequiredMixin,
     NatOfficerRequiredMixin,
     PagedFilteredTableView,
@@ -38,7 +39,7 @@ from .tables import GearArticleTable, SubmissionTable
 logger = logging.getLogger(__name__)
 
 
-class SubmissionDetailView(LoginRequiredMixin, DetailView):
+class SubmissionDetailView(LoginRequiredMixin, ChapterScopedQuerysetMixin, DetailView):
     model = Submission
     slug_field = "slug"
     slug_url_kwarg = "slug"
@@ -47,7 +48,8 @@ class SubmissionDetailView(LoginRequiredMixin, DetailView):
         # The detail URL is date + slug based and slug is not unique, so more
         # than one submission can match; return the earliest to stay deterministic.
         obj = (
-            Submission.objects.filter(
+            self.get_queryset()
+            .filter(
                 date__year=self.kwargs["year"],
                 date__month=self.kwargs["month"],
                 date__day=self.kwargs["day"],
@@ -107,21 +109,13 @@ class SubmissionRedirectView(LoginRequiredMixin, RedirectView):
         return reverse("submissions:list")
 
 
-class SubmissionUpdateView(LoginRequiredMixin, TypeFieldFilteredChapterAdd, UpdateView):
+class SubmissionUpdateView(LoginRequiredMixin, ChapterScopedQuerysetMixin, TypeFieldFilteredChapterAdd, UpdateView):
     form_class = SubmissionForm
     model = Submission
     score_type = "Sub"
     officer_edit = "submissions"
     officer_edit_type = "edit"
     success_message = "Submission '%(name)s' was updated."
-
-    def get_queryset(self):
-        user = self.request.user
-        # National Officers and Admins review every chapter (the region task table links
-        # here); everyone else reaches only the chapter they work in, and gets a 404 otherwise.
-        if user.is_admin or user.is_national_officer_group:
-            return Submission.objects.all()
-        return Submission.objects.filter(chapter=user.current_chapter)
 
     def get(self, request, *args, **kwargs):
         submission = self.get_object()

@@ -139,7 +139,7 @@ def _collect_tasks(chapter, start_date, end_date) -> Iterable[ActivityItem]:
         task_date = tc.task
         task = task_date.task if task_date else None
         title = task.name if task else "Task"
-        url = _safe_reverse("tasks:detail", pk=task.pk) if task else None
+        url = _safe_reverse("tasks:detail", pk=tc.pk)
         yield ActivityItem(
             when=_make_aware(tc.date),
             display_date=tc.date,

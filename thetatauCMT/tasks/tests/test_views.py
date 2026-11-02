@@ -145,6 +145,42 @@ def test_task_detail_view_unauthenticated(client):
     assert "/accounts/login/" in response["Location"]
 
 
+def _completion_in(chapter_name):
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+
+    chapter = ChapterFactory(name=chapter_name)
+    _, task_date = _make_task_with_date(days_offset=5)
+    return TaskChapter.objects.create(task=task_date, chapter=chapter, date=datetime.date(2024, 1, 1))
+
+
+def _member_of(chapter):
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    return UserFactory(chapter=chapter, badge_number=9001, current_status="active")
+
+
+@pytest.mark.django_db
+def test_task_detail_view_hides_another_chapters_completion(auto_login_user):
+    """The pk is a plain counter, so anyone signed in could read every chapter's completions."""
+    own = _completion_in("alpha")
+    client, user = auto_login_user(user=_member_of(own.chapter))
+    other = _completion_in("beta")
+
+    assert client.get(reverse("tasks:detail", kwargs={"pk": own.pk})).status_code == 200
+    assert client.get(reverse("tasks:detail", kwargs={"pk": other.pk})).status_code == 404
+
+
+@pytest.mark.django_db
+def test_task_detail_view_shows_national_officers_any_chapter(auto_login_user):
+    """Regional Directors open every chapter's completions from the region task table."""
+    own = _completion_in("alpha")
+    client, user = auto_login_user(user=_member_of(own.chapter))
+    user.groups.add(Group.objects.get_or_create(name="natoff")[0])
+    other = _completion_in("beta")
+
+    assert client.get(reverse("tasks:detail", kwargs={"pk": other.pk})).status_code == 200
+
+
 # ---------------------------------------------------------------------------
 # TaskListView complete/incomplete filtering
 # ---------------------------------------------------------------------------

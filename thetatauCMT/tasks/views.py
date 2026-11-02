@@ -9,7 +9,13 @@ from django.shortcuts import reverse
 from django.views.generic import CreateView, DetailView
 
 from core.models import current_year_term_slug
-from core.views import LoginRequiredMixin, OfficerRequiredMixin, PagedFilteredTableView, RequestConfig
+from core.views import (
+    ChapterScopedQuerysetMixin,
+    LoginRequiredMixin,
+    OfficerRequiredMixin,
+    PagedFilteredTableView,
+    RequestConfig,
+)
 from thetatauCMT.forms.tables import SignTable
 from thetatauCMT.forms.views import get_sign_status, get_sign_status_discipline
 
@@ -74,7 +80,7 @@ class TaskCompleteView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):
         return reverse("tasks:list")
 
 
-class TaskDetailView(LoginRequiredMixin, DetailView):
+class TaskDetailView(LoginRequiredMixin, ChapterScopedQuerysetMixin, DetailView):
     model = TaskChapter
 
 

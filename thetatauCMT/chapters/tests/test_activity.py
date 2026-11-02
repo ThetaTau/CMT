@@ -99,7 +99,9 @@ def test_iter_chapter_activity_includes_task_completions():
     task_items = [i for i in items if i.category == CATEGORY_TASK]
     assert len(task_items) == 1
     assert task_items[0].title == tc.task.task.name
-    assert task_items[0].url  # link resolved
+    # It linked the task definition's pk, which opened an unrelated (often another
+    # chapter's) completion instead of this one.
+    assert task_items[0].url == reverse("tasks:detail", args=[tc.pk])
 
 
 @pytest.mark.django_db
