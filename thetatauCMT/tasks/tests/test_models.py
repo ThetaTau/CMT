@@ -376,6 +376,25 @@ def test_render_task_link_with_submission_type():
     assert "href" in str(link)
 
 
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "task_name, url_name",
+    [("Gear Article", "submissions:gear"), ("Outstanding Student Member", "viewflow:forms:osm:start")],
+)
+def test_render_task_link_sends_a_task_with_its_own_form_to_that_form(task_name, url_name):
+    """These tasks linked to an upload of their score type, so officers uploaded a
+    file there instead of using the form that does the real work."""
+    from django.urls import reverse
+
+    task = Task.objects.filter(name=task_name, type="sub").first()
+    assert task is not None, f"{task_name} task missing from tasks.json"
+
+    link = str(task.render_task_link)
+
+    assert f'href="{reverse(url_name)}"' in link
+    assert reverse("submissions:add") not in link
+
+
 # ---------------------------------------------------------------------------
 # Task.render_task_link — ballot resource path (line 64)
 # ---------------------------------------------------------------------------

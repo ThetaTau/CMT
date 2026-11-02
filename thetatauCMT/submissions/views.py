@@ -29,6 +29,7 @@ from thetatauCMT.regions.models import Region
 from thetatauCMT.scores.models import ScoreType
 from thetatauCMT.tasks.models import Task
 
+from .dedicated_forms import dedicated_form_for
 from .filters import GearArticleListFilter, SubmissionListFilter
 from .forms import GearArticleForm, GearArticleListFormHelper, PictureForm, SubmissionForm, SubmissionListFormHelper
 from .models import GearArticle, Picture, Submission
@@ -72,6 +73,14 @@ class SubmissionCreateView(
     officer_edit = "submissions"
     officer_edit_type = "create"
     success_message = "Submission '%(name)s' was submitted."
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["descriptions"] = [
+            {**description, "dedicated_form": dedicated_form_for(description["slug"])}
+            for description in context["descriptions"]
+        ]
+        return context
 
     def get_success_url(self):
         name = None

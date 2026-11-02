@@ -284,7 +284,7 @@ class TypeFieldFilteredChapterAdd(FormMixin):
             # A stale/unknown ScoreType slug (the row was renamed or deleted)
             # used to IndexError on ``score_obj[0]`` (issue #1033); fall back to
             # the default type dropdown instead of 500-ing.
-            form.fields["type"].queryset = ScoreType.objects.filter(type=self.score_type).all().exclude(slug="article")
+            form.fields["type"].queryset = ScoreType.objects.filter(type=self.score_type).all()
         return form
 
     def form_valid(self, form):
@@ -358,7 +358,7 @@ class TypeFieldFilteredChapterAdd(FormMixin):
         descriptions = (
             ScoreType.objects.filter(type=self.score_type)
             .all()
-            .values("id", "description", "formula", "points", "slug")
+            .values("id", "name", "description", "formula", "points", "slug")
         )
         context["descriptions"] = descriptions
         return context

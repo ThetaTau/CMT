@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models import Q
 from django.shortcuts import reverse
 from django.utils import timezone
-from django.utils.html import mark_safe
+from django.utils.html import format_html, mark_safe
 from django.utils.text import slugify
 from django_userforeignkey.models.fields import UserForeignKey
 from email_signals.models import EmailSignalMixin
@@ -15,6 +15,7 @@ from email_signals.models import EmailSignalMixin
 from core.models import ALL_ROLES_CHOICES, TODAY_END, academic_encompass_start_end_date
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.scores.models import ScoreType
+from thetatauCMT.submissions.dedicated_forms import dedicated_form_for
 
 
 class Task(models.Model):
@@ -52,9 +53,16 @@ class Task(models.Model):
         resource = self.resource
         task_type = self.type
         if task_type == "sub" and self.submission_type:
-            value = mark_safe(
-                "<a href=" + reverse("submissions:add-direct", args=(self.submission_type.slug,)) + ">Submission</a>"
-            )
+            dedicated = dedicated_form_for(self.submission_type)
+            if dedicated:
+                # Its submission comes from that form; an upload would skip the form's work.
+                value = format_html('<a href="{}">Form</a>', dedicated.url)
+            else:
+                value = mark_safe(
+                    "<a href="
+                    + reverse("submissions:add-direct", args=(self.submission_type.slug,))
+                    + ">Submission</a>"
+                )
         elif "http" in resource:
             value = mark_safe(f'<a href="{resource}">Form</a>')
         elif ":" in resource:

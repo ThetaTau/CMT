@@ -471,6 +471,7 @@
           "key": "add-submission",
           "name": "Add a submission",
           "short_description": "Send in something your chapter did that earns score, then pick the score type and attach the evidence.",
+          "long_description": "Gear articles, chapter audits, new member education programs, outstanding student member nominations and risk management signatures each have their own form, which records the submission for you. Pick one of those types here and the page links you to its form instead of taking an upload.",
           "url_name": "submissions:add"
         }
       ]

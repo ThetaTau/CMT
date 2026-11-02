@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from django.contrib.auth.models import Group
 from django.urls import reverse
@@ -324,3 +326,180 @@ def test_submission_detail_view_duplicate_date_slug_no_crash(auto_login_user):
     response = client.get(url)
     assert response.status_code == 200
     assert response.context["object"].pk == first.pk
+
+
+# ---------------------------------------------------------------------------
+# Score types with their own form: "Add a submission" points to that form
+# ---------------------------------------------------------------------------
+
+OWN_FORM_URL_NAMES = {
+    "article": "submissions:gear",
+    "audit": "forms:audit",
+    "pledge-program": "viewflow:forms:pledgeprogramprocess:start",
+    "osm": "viewflow:forms:osm:start",
+    "rmp": "forms:rmp",
+}
+
+
+def _submission_post_data(score_type, **overrides):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    data = {
+        "name": "Fall alumni newsletter",
+        "date": "2026-10-20",
+        "type": score_type.pk,
+        "file": SimpleUploadedFile("newsletter.pdf", b"%PDF-1.4 newsletter", content_type="application/pdf"),
+    }
+    data.update(overrides)
+    return data
+
+
+def _type_details(body, score_type):
+    """The details block the add page reveals when ``score_type`` is picked."""
+    match = re.search(rf'id="type-description-{score_type.pk}"(.*?)</table>', body, re.S)
+    assert match, f"no details block for {score_type.slug}"
+    return match.group(1)
+
+
+@pytest.mark.django_db
+def test_submission_add_offers_gear_article(auto_login_user):
+    """Gear Article was missing from the type list, so members filed their article
+    under another type instead of finding the Gear article form."""
+    from thetatauCMT.scores.models import ScoreType
+
+    client, user = auto_login_user()
+
+    response = client.get(reverse("submissions:add"))
+
+    assert ScoreType.objects.get(slug="article") in response.context["form"].fields["type"].queryset
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("slug, url_name", OWN_FORM_URL_NAMES.items())
+def test_submission_add_points_a_type_with_its_own_form_to_that_form(auto_login_user, slug, url_name):
+    from thetatauCMT.scores.models import ScoreType
+
+    client, user = auto_login_user()
+    score_type = ScoreType.objects.get(slug=slug)
+
+    body = client.get(reverse("submissions:add")).content.decode()
+
+    details = _type_details(body, score_type)
+    assert f"{score_type.name} has its own form" in details
+    assert f'href="{reverse(url_name)}"' in details
+
+
+@pytest.mark.django_db
+def test_submission_add_shows_no_form_notice_for_a_regular_upload(auto_login_user):
+    from thetatauCMT.scores.models import ScoreType
+
+    client, user = auto_login_user()
+
+    body = client.get(reverse("submissions:add")).content.decode()
+
+    assert "has its own form" not in _type_details(body, ScoreType.objects.get(slug="newsletter"))
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("slug, url_name", OWN_FORM_URL_NAMES.items())
+def test_submission_add_refuses_an_upload_for_a_type_with_its_own_form(
+    auto_login_user, settings, tmp_path, slug, url_name
+):
+    """An upload skipped the real form: the Gear editor never got the article, and an
+    uploaded new member education program scored as adopted without any review."""
+    from thetatauCMT.scores.models import ScoreType
+    from thetatauCMT.submissions.models import Submission
+
+    settings.MEDIA_ROOT = str(tmp_path)
+    client, user = auto_login_user()
+    score_type = ScoreType.objects.get(slug=slug)
+
+    response = client.post(reverse("submissions:add"), _submission_post_data(score_type))
+
+    assert response.status_code == 200
+    assert not Submission.objects.filter(type=score_type).exists()
+    assert f'href="{reverse(url_name)}"' in " ".join(response.context["form"].errors["type"])
+
+
+@pytest.mark.django_db
+def test_submission_add_saves_a_regular_upload(auto_login_user, settings, tmp_path):
+    from thetatauCMT.scores.models import ScoreType
+    from thetatauCMT.submissions.models import Submission
+
+    settings.MEDIA_ROOT = str(tmp_path)
+    client, user = auto_login_user()
+    score_type = ScoreType.objects.get(slug="newsletter")
+
+    response = client.post(reverse("submissions:add"), _submission_post_data(score_type))
+
+    assert response.status_code == 302
+    assert Submission.objects.filter(type=score_type, name="Fall alumni newsletter").count() == 1
+
+
+@pytest.mark.django_db
+def test_submission_update_keeps_an_earlier_upload_of_a_type_with_its_own_form(auto_login_user):
+    """Uploads made before these types pointed to their form stay editable."""
+    import datetime
+
+    from thetatauCMT.scores.models import ScoreType
+    from thetatauCMT.submissions.models import Submission
+
+    client, user = auto_login_user(make_officer="chapter")
+    _make_officer(user, client)
+    audit = ScoreType.objects.get(slug="audit")
+    submission = Submission.objects.create(
+        name="Spring audit",
+        date=datetime.date(2026, 3, 1),
+        type=audit,
+        chapter=user.chapter,
+        file="submissions/audit/spring.pdf",
+    )
+
+    response = client.post(
+        reverse("submissions:update", kwargs={"pk": submission.pk}),
+        {"name": "Spring audit signed", "date": "2026-03-01", "type": audit.pk},
+    )
+
+    assert response.status_code == 302
+    submission.refresh_from_db()
+    assert submission.name == "Spring audit signed"
+
+
+@pytest.mark.django_db
+def test_submission_update_refuses_switching_to_a_type_with_its_own_form(auto_login_user):
+    import datetime
+
+    from thetatauCMT.scores.models import ScoreType
+    from thetatauCMT.submissions.models import Submission
+
+    client, user = auto_login_user(make_officer="chapter")
+    _make_officer(user, client)
+    newsletter = ScoreType.objects.get(slug="newsletter")
+    submission = Submission.objects.create(
+        name="Our story",
+        date=datetime.date(2026, 3, 1),
+        type=newsletter,
+        chapter=user.chapter,
+        file="submissions/newsletter/story.pdf",
+    )
+
+    response = client.post(
+        reverse("submissions:update", kwargs={"pk": submission.pk}),
+        {"name": "Our story", "date": "2026-03-01", "type": ScoreType.objects.get(slug="article").pk},
+    )
+
+    assert response.status_code == 200
+    submission.refresh_from_db()
+    assert submission.type == newsletter
+    assert f'href="{reverse("submissions:gear")}"' in " ".join(response.context["form"].errors["type"])
+
+
+@pytest.mark.django_db
+def test_every_own_form_type_is_a_submission_type_with_a_working_link():
+    from thetatauCMT.scores.models import ScoreType
+    from thetatauCMT.submissions.dedicated_forms import DEDICATED_FORMS
+
+    assert set(DEDICATED_FORMS) == set(OWN_FORM_URL_NAMES)
+    for slug, dedicated in DEDICATED_FORMS.items():
+        assert ScoreType.objects.filter(slug=slug, type="Sub").exists(), slug
+        assert dedicated.url == reverse(OWN_FORM_URL_NAMES[slug])

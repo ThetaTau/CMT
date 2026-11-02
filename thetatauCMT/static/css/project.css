@@ -301,6 +301,22 @@ body.region-bar-hidden .tt-region-bar { display: none !important; }
 [data-bs-theme="dark"] .btn-outline-warning   { --bs-btn-color: #ffda6a; --bs-btn-border-color: #ffcd39; }
 [data-bs-theme="dark"] .btn-outline-info      { --bs-btn-color: #6edff6; --bs-btn-border-color: #3dd5f3; }
 [data-bs-theme="dark"] .btn-outline-dark      { --bs-btn-color: #dee2e6; --bs-btn-border-color: #adb5bd; --bs-btn-hover-bg: #dee2e6; --bs-btn-hover-color: #16181c; --bs-btn-active-bg: #dee2e6; --bs-btn-active-color: #16181c; }
+/* A solid dark button is the dark-mode card color (#212529) with a matching
+   border, so only its label showed. Flip it light, as for .btn-outline-dark. */
+[data-bs-theme="dark"] .btn-dark {
+  --bs-btn-color: #16181c;
+  --bs-btn-bg: #dee2e6;
+  --bs-btn-border-color: #dee2e6;
+  --bs-btn-hover-color: #16181c;
+  --bs-btn-hover-bg: #f8f9fa;
+  --bs-btn-hover-border-color: #f8f9fa;
+  --bs-btn-active-color: #16181c;
+  --bs-btn-active-bg: #f8f9fa;
+  --bs-btn-active-border-color: #f8f9fa;
+  --bs-btn-disabled-color: #16181c;
+  --bs-btn-disabled-bg: #dee2e6;
+  --bs-btn-disabled-border-color: #dee2e6;
+}
 
 [data-bs-theme="dark"] #MPOuterHeader {
   background-color: #16181c;

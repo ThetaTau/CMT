@@ -12,9 +12,16 @@
       {{ field|as_crispy_field }}
       {% if field.name == "type" %}
         <h4>Submission Description: </h4>
-          <h5>
+        <div>
         {% for description in descriptions %}
-          <div id="{{ description.id }}" class="group">
+          <div id="type-description-{{ description.id }}" class="group">
+          {% if description.dedicated_form %}
+            <div class="alert alert-info" role="note">
+              <strong>{{ description.name }} has its own form.</strong>
+              Use the <a class="alert-link" href="{{ description.dedicated_form.url }}">{{ description.dedicated_form.form_name }}</a> instead.
+              {{ description.dedicated_form.reason }} There is nothing to upload here.
+            </div>
+          {% endif %}
           <table class="table">
             <thead>
             <tr>
@@ -32,12 +39,12 @@
           </table>
           </div>
         {% endfor %}
-          </h5>
+        </div>
       {% endif %}
     {% endfor %}
     <div class="control-group">
       <div class="controls">
-        <button type="submit" class="btn" value="Save">Save</button>
+        <button type="submit" class="btn btn-primary" value="Save">Save</button>
       </div>
     </div>
   </form>
@@ -50,12 +57,14 @@
 {#        </select><? } ?>#}
 <script >
 $(function () {
-  $('.group').hide();
-  $('#id_type').change(function () {
-  var value = $('#id_type').find(":selected")[0].value;
-  $('.group').hide();
-  $('#'+value).show();
-  })
+  function showTypeDescription() {
+    $('.group').hide();
+    $('#type-description-' + $('#id_type').val()).show();
+  }
+  $('#id_type').change(showTypeDescription);
+  // A type that is already picked (a task's direct link, or the form sent back
+  // with errors) shows its details without having to change the dropdown.
+  showTypeDescription();
 });
 </script>
 {% endblock %}

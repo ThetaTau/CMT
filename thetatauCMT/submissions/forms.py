@@ -3,10 +3,12 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Fieldset, Layout, Row, Submit
 from dal import autocomplete, forward
 from django import forms
+from django.utils.html import format_html
 
 from core.forms import DatePicker
 from thetatauCMT.users.models import User
 
+from .dedicated_forms import dedicated_form_for
 from .models import GearArticle, Picture, Submission
 
 
@@ -25,6 +27,21 @@ class SubmissionForm(forms.ModelForm):
                 attrs={"autocomplete": "off"},
             ),
         }
+
+    def clean_type(self):
+        score_type = self.cleaned_data["type"]
+        dedicated = dedicated_form_for(score_type)
+        # An earlier upload of one of these types stays editable; only choosing one is refused.
+        if dedicated and score_type.pk != self.instance.type_id:
+            raise forms.ValidationError(
+                format_html(
+                    '{} has its own form, so it is not uploaded here. Use the <a href="{}">{}</a> instead.',
+                    score_type.name,
+                    dedicated.url,
+                    dedicated.form_name,
+                )
+            )
+        return score_type
 
 
 class SubmissionListFormHelper(FormHelper):
