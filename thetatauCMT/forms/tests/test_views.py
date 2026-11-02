@@ -3224,6 +3224,80 @@ def test_rmp_detail_view_get(auto_login_user):
     assert response.status_code == 200
 
 
+def _member_in(chapter, badge):
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    return UserFactory(chapter=chapter, badge_number=badge, current_status="active")
+
+
+def _signed_rmp(member):
+    from thetatauCMT.forms.tests.factories import RiskManagementFactory
+
+    return RiskManagementFactory.create(user=member, submission=None)
+
+
+def _rmp_status(client, rmp):
+    from unittest.mock import patch
+
+    with patch(
+        "easy_pdf.views.PDFTemplateResponseMixin.render_to_response",
+        return_value=HttpResponse(b"%PDF-1.4 mock", content_type="application/pdf"),
+    ):
+        return client.get(reverse("forms:rmp_complete", kwargs={"pk": rmp.pk})).status_code
+
+
+@pytest.mark.django_db
+def test_rmp_detail_view_hides_another_members_rmp(auto_login_user):
+    """The pk is a plain counter, so any signed-in member could read every member's signed RMP."""
+    alpha = ChapterFactory(name="alpha")
+    client, member = auto_login_user(user=_member_in(alpha, 9001))
+
+    assert _rmp_status(client, _signed_rmp(_member_in(alpha, 9002))) == 404
+
+
+@pytest.mark.django_db
+def test_rmp_detail_view_shows_chapter_officers_only_their_chapters_rmps(auto_login_user):
+    alpha, beta = ChapterFactory(name="alpha"), ChapterFactory(name="beta")
+    client, officer = auto_login_user(user=_member_in(alpha, 9001))
+    _add_to_group(officer, "officer")
+
+    assert _rmp_status(client, _signed_rmp(_member_in(alpha, 9002))) == 200
+    assert _rmp_status(client, _signed_rmp(_member_in(beta, 9003))) == 404
+
+
+@pytest.mark.django_db
+def test_rmp_detail_view_shows_officers_an_rmp_filed_with_their_chapter(auto_login_user):
+    """A member who later transferred still has this RMP filed under the old chapter."""
+    import datetime
+
+    from thetatauCMT.scores.models import ScoreType
+    from thetatauCMT.submissions.models import Submission
+
+    alpha, beta = ChapterFactory(name="alpha"), ChapterFactory(name="beta")
+    client, officer = auto_login_user(user=_member_in(alpha, 9001))
+    _add_to_group(officer, "officer")
+    rmp = _signed_rmp(_member_in(beta, 9003))
+    rmp.submission = Submission.objects.create(
+        name="Risk Management Form",
+        date=datetime.date(2026, 9, 1),
+        type=ScoreType.objects.get(slug="rmp"),
+        chapter=alpha,
+        file="submissions/rmp/transferred.pdf",
+    )
+    rmp.save()
+
+    assert _rmp_status(client, rmp) == 200
+
+
+@pytest.mark.django_db
+def test_rmp_detail_view_shows_national_officers_any_rmp(auto_login_user):
+    alpha, beta = ChapterFactory(name="alpha"), ChapterFactory(name="beta")
+    client, natoff = auto_login_user(user=_member_in(alpha, 9001))
+    _add_to_group(natoff, "natoff")
+
+    assert _rmp_status(client, _signed_rmp(_member_in(beta, 9003))) == 200
+
+
 # ─── AuditListView context data path (lines 1403-1406) ───────────────────────
 
 

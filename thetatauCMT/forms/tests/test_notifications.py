@@ -110,6 +110,27 @@ def test_email_rmp_signed_context_contains_user():
     assert notif.context["user"] == user
 
 
+@pytest.mark.django_db
+def test_email_rmp_signed_demo_renders_the_signers_own_copy():
+    """The email preview rendered a random RMP as a random member; the RMP page
+    now shows a member only their own signed copy, so it renders as the signer."""
+    from unittest.mock import patch
+
+    from django.http import HttpResponse
+
+    from thetatauCMT.forms.tests.factories import RiskManagementFactory
+
+    rmp = RiskManagementFactory.create(submission=None)
+    UserFactory.create_batch(3, chapter=rmp.user.chapter)
+    with patch(
+        "easy_pdf.views.PDFTemplateResponseMixin.render_to_response",
+        return_value=HttpResponse(b"%PDF-1.4 mock", content_type="application/pdf"),
+    ):
+        user, content, file_name = EmailRMPSigned.get_demo_args()
+
+    assert (user, content, file_name) == (rmp.user, b"%PDF-1.4 mock", f"Risk Management Form {rmp.user}")
+
+
 # ─── EmailRMPReport ───────────────────────────────────────────────────────────
 
 

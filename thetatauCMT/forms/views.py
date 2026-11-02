@@ -1661,6 +1661,20 @@ class RiskManagementDetailView(LoginRequiredMixin, PDFTemplateResponseMixin, Upd
     form_class = RiskManagementForm
     template_name = "forms/rmp_pdf.html"
 
+    def get_queryset(self):
+        user = self.request.user
+        records = RiskManagement.objects.all()
+        if user.is_admin or user.is_national_officer_group:
+            return records
+        # A member sees their own signed copy (the signing flow renders it as them); a
+        # chapter officer also sees their chapter's, by the member's current chapter or
+        # the chapter the copy was filed under. Any other record is a 404.
+        visible = Q(user=user)
+        chapter = user.current_chapter
+        if user.is_chapter_officer_group and chapter is not None:
+            visible |= Q(user__chapter=chapter) | Q(submission__chapter=chapter)
+        return records.filter(visible)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["is_officer"] = getattr(self.request, "is_officer", False)

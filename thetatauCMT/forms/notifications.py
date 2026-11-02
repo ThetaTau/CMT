@@ -43,12 +43,12 @@ class EmailRMPSigned(EmailNotification):  # extend from EmailNotification for em
 
         from thetatauCMT.forms.models import RiskManagement
         from thetatauCMT.forms.views import RiskManagementDetailView
-        from thetatauCMT.users.models import User
 
         form = RiskManagement.objects.order_by("?")[0]
         view = RiskManagementDetailView.as_view()
         new_request = HttpRequest()
-        test_user = User.objects.order_by("?")[0]
+        # Render as the signer: the view only shows a member their own signed copy.
+        test_user = form.user
         new_request.user = test_user
         new_request.path = f"/forms/rmp-complete/{form.id}"
         new_request.method = "GET"
