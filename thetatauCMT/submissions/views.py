@@ -115,21 +115,24 @@ class SubmissionUpdateView(LoginRequiredMixin, TypeFieldFilteredChapterAdd, Upda
     officer_edit_type = "edit"
     success_message = "Submission '%(name)s' was updated."
 
+    def get_queryset(self):
+        user = self.request.user
+        # National Officers and Admins review every chapter (the region task table links
+        # here); everyone else reaches only the chapter they work in, and gets a 404 otherwise.
+        if user.is_admin or user.is_national_officer_group:
+            return Submission.objects.all()
+        return Submission.objects.filter(chapter=user.current_chapter)
+
     def get(self, request, *args, **kwargs):
-        submission_id = self.kwargs.get("pk")
-        try:
-            submission = Submission.objects.get(pk=submission_id)
-        except Submission.DoesNotExist:
-            messages.add_message(request, messages.ERROR, "Submission could not be found!")
-        else:
-            if "forms:" in submission.file.name:
-                path, args = submission.file.name, None
-                if " " in path:
-                    path, args = path.split(" ")
-                    url = reverse(path, args=[args])
-                else:
-                    url = reverse(path)
-                return redirect(url)
+        submission = self.get_object()
+        if "forms:" in submission.file.name:
+            path, args = submission.file.name, None
+            if " " in path:
+                path, args = path.split(" ")
+                url = reverse(path, args=[args])
+            else:
+                url = reverse(path)
+            return redirect(url)
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):

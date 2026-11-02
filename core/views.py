@@ -288,10 +288,15 @@ class TypeFieldFilteredChapterAdd(FormMixin):
         return form
 
     def form_valid(self, form):
-        chapter = self.request.user.current_chapter
-        form.instance.chapter = chapter
-        if hasattr(form.instance, "user"):
-            form.instance.user = self.request.user
+        if form.instance.pk:
+            # An edit keeps the record's chapter and submitter: saving another chapter's
+            # submission used to move it into the editor's chapter.
+            chapter = form.instance.chapter
+        else:
+            chapter = self.request.user.current_chapter
+            form.instance.chapter = chapter
+            if hasattr(form.instance, "user"):
+                form.instance.user = self.request.user
         score_obj = form.instance.type
         task = score_obj.task.first()
         if task:

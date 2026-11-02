@@ -503,3 +503,101 @@ def test_every_own_form_type_is_a_submission_type_with_a_working_link():
     for slug, dedicated in DEDICATED_FORMS.items():
         assert ScoreType.objects.filter(slug=slug, type="Sub").exists(), slug
         assert dedicated.url == reverse(OWN_FORM_URL_NAMES[slug])
+
+
+# ---------------------------------------------------------------------------
+# Editing reaches only the chapter's own submissions, and never moves one
+# ---------------------------------------------------------------------------
+
+
+def _chapter(name):
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+
+    return ChapterFactory(name=name)
+
+
+def _chapter_member(chapter, badge):
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    return UserFactory(chapter=chapter, badge_number=badge, current_status="active")
+
+
+def _newsletter(chapter, user=None):
+    import datetime
+
+    from thetatauCMT.scores.models import ScoreType
+    from thetatauCMT.submissions.models import Submission
+
+    return Submission.objects.create(
+        name="Spring newsletter",
+        date=datetime.date(2026, 3, 1),
+        type=ScoreType.objects.get(slug="newsletter"),
+        chapter=chapter,
+        user=user,
+        file="submissions/newsletter/spring.pdf",
+    )
+
+
+def _edit(client, submission, **overrides):
+    data = {"name": submission.name, "date": "2026-03-01", "type": submission.type_id}
+    data.update(overrides)
+    return client.post(reverse("submissions:update", kwargs={"pk": submission.pk}), data)
+
+
+@pytest.mark.django_db
+def test_submission_update_hides_another_chapters_submission(auto_login_user):
+    """Any signed-in member could open another chapter's submission by its URL."""
+    client, user = auto_login_user(user=_chapter_member(_chapter("alpha"), 9001))
+    submission = _newsletter(_chapter("beta"))
+
+    response = client.get(reverse("submissions:update", kwargs={"pk": submission.pk}))
+
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_submission_update_cannot_take_another_chapters_submission(auto_login_user):
+    """Saving another chapter's submission moved it into the editor's chapter."""
+    client, user = auto_login_user(user=_chapter_member(_chapter("alpha"), 9001))
+    _make_officer(user, client)
+    other = _chapter("beta")
+    submission = _newsletter(other)
+
+    response = _edit(client, submission, name="Taken")
+
+    assert response.status_code == 404
+    submission.refresh_from_db()
+    assert (submission.chapter, submission.name) == (other, "Spring newsletter")
+
+
+@pytest.mark.django_db
+def test_national_officer_edits_any_chapters_submission_without_moving_it(auto_login_user):
+    """Regional Directors reach a chapter's submissions from the region task table."""
+    client, natoff = auto_login_user(user=_chapter_member(_chapter("alpha"), 9001))
+    _make_natoff(natoff, client)
+    other = _chapter("beta")
+    submitter = _chapter_member(other, 9002)
+    submission = _newsletter(other, user=submitter)
+
+    assert client.get(reverse("submissions:update", kwargs={"pk": submission.pk})).status_code == 200
+    response = _edit(client, submission, name="Spring newsletter final")
+
+    assert response.status_code == 302
+    submission.refresh_from_db()
+    assert submission.name == "Spring newsletter final"
+    assert (submission.chapter, submission.user) == (other, submitter)
+
+
+@pytest.mark.django_db
+def test_submission_update_keeps_the_submitter(auto_login_user):
+    """An edit by another member of the chapter used to make them the submitter."""
+    home = _chapter("alpha")
+    submitter = _chapter_member(home, 9002)
+    client, editor = auto_login_user(user=_chapter_member(home, 9001))
+    submission = _newsletter(home, user=submitter)
+
+    response = _edit(client, submission, name="Renamed")
+
+    assert response.status_code == 302
+    submission.refresh_from_db()
+    assert (submission.name, submission.chapter, submission.user) == ("Renamed", home, submitter)
