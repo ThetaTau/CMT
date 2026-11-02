@@ -75,7 +75,7 @@ from thetatauCMT.support.models import SupportDigestEntry
 from thetatauCMT.support.services import own_records_chapter
 from thetatauCMT.surveys.notifications import DepledgeSurveyEmail, SurveyEmail
 from thetatauCMT.tasks.models import Task
-from thetatauCMT.trainings.models import EdCourse, Training
+from thetatauCMT.trainings.models import EdCourse, Training, VectorGroup
 from thetatauCMT.users.forms import UserForm
 from thetatauCMT.users.models import User, UserRoleChange
 from thetatauCMT.users.notifications import NewOfficers
@@ -1139,11 +1139,12 @@ class RoleChangeCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateView)
     Preserves every safeguard and side effect of the old election formset: the
     self-assignment block and Treasurer January-term policy (in the form), the
     away/alumni term-overlap block, the deadlock-safe write, the best-effort
-    Vector LMS sync for educator / risk-management roles, the Treasurer
-    policy-exception notification, ``Task`` completion, and the ``NewOfficers``
-    email, and also enrolls the officer in the Open edX courses configured for
-    the role. Those new-officer side effects are skipped when the recorded term is
-    entirely in the past (a historical backfill).
+    Vector LMS sync, the Treasurer policy-exception notification, ``Task``
+    completion, and the ``NewOfficers`` email. The Vector groups and Open edX
+    courses the officer gets are the ones configured for the role
+    (``trainings.VectorGroup`` / ``trainings.EdCourse``). Those new-officer side
+    effects are skipped when the recorded term is entirely in the past (a
+    historical backfill).
     """
 
     officer_edit = "member roles"
@@ -1186,20 +1187,14 @@ class RoleChangeCreateView(LoginRequiredMixin, OfficerRequiredMixin, CreateView)
         # email, task completion, and the New Officers email).
         if not _term_is_in_past(form.instance.start, form.instance.end):
             role_name = role
-            if role_name in [
-                "pledge/new member educator",
-                "risk management chair",
-            ]:
+            vector_groups = VectorGroup.codes_for_role(role)
+            if vector_groups:
                 # Syncing to the external Vector LMS is a best-effort side
                 # effect; the officer role change above is already saved. A
                 # training-system outage must never turn this into a 500 (see
                 # issue #1086), so surface a retry message instead.
                 try:
-                    Training.add_user(
-                        member,
-                        extra_group=role_name,
-                        request=self.request,
-                    )
+                    Training.add_user(member, extra_groups=vector_groups, request=self.request)
                 except Exception:
                     logger.exception(
                         "Training sync failed during officer add for %s",
@@ -1390,8 +1385,8 @@ class RoleChangeNationalCreateView(LoginRequiredMixin, SuperuserRequiredMixin, C
     """Add a single national officer / role (superuser only).
 
     Preserves the self-assignment block (in the form) and the deadlock-safe
-    write of the old national election formset, and enrolls the officer in the
-    Open edX courses configured for the role.
+    write of the old national election formset, and assigns the Vector groups
+    and Open edX courses configured for the role.
     """
 
     template_name = "forms/officer_national_form.html"
@@ -1412,15 +1407,27 @@ class RoleChangeNationalCreateView(LoginRequiredMixin, SuperuserRequiredMixin, C
         member = form.instance.user
 
         # Deadlock-safe write — same rationale as the chapter view
-        # (issues #825/#858/#859/#982). The Open edX enrollment runs afterwards
-        # so a retry cannot duplicate it.
+        # (issues #825/#858/#859/#982). The training assignments run afterwards
+        # so a retry cannot duplicate them.
         def _persist():
             list(User.objects.select_for_update().filter(pk=member.pk))
             form.save()
 
         retry_on_deadlock(_persist, description="national officer role add")
-        # Skip the Open edX enrollment for a purely historical (past) term.
+        # Skip the training assignments for a purely historical (past) term.
         if not _term_is_in_past(form.instance.start, form.instance.end):
+            vector_groups = VectorGroup.codes_for_role(form.instance.role)
+            if vector_groups:
+                try:
+                    Training.add_user(member, extra_groups=vector_groups, request=self.request)
+                except Exception:
+                    logger.exception("Training sync failed during national officer add for %s", member)
+                    messages.add_message(
+                        self.request,
+                        messages.WARNING,
+                        f"The role was saved, but the training system could not be updated for {member}. "
+                        "Please try again later.",
+                    )
             try:
                 Training.add_user_ed(
                     member, request=self.request, courses=EdCourse.course_ids_for_role(form.instance.role)

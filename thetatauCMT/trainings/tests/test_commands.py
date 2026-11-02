@@ -43,6 +43,26 @@ def test_enroll_all_ed_applies_every_member_and_role_rules(recorded_enrollments)
 
 
 @pytest.mark.django_db
+def test_enroll_all_ed_gives_new_member_and_national_officer_courses_only_to_current_holders(recorded_enrollments):
+    EdCourse.objects.all().delete()
+    new_members = EdCourse.objects.create(
+        course_id="course-v1:ThetaTau+HS101+online", title="New member H&S", assign_to_new_members=True
+    )
+    natoffs = EdCourse.objects.create(
+        course_id="course-v1:ThetaTau+NO101+natoff", title="NatOff 101", assign_to_national_officers=True
+    )
+    pnm = UserFactory.create(current_status="pnm")
+    regional_director = UserFactory.create(current_status="alumni", current_roles=["regional director"])
+    active = UserFactory.create(current_status="active", current_roles=["regent"])
+
+    call_command("enroll_all_ed", stdout=StringIO())
+
+    assert recorded_enrollments[pnm.pk] == [new_members.course_id]
+    assert recorded_enrollments[regional_director.pk] == [natoffs.course_id]
+    assert active.pk not in recorded_enrollments
+
+
+@pytest.mark.django_db
 def test_enroll_all_ed_course_option_limits_the_run_to_that_course(recorded_enrollments):
     EdCourse.objects.all().delete()
     EdCourse.objects.create(course_id="course-v1:ThetaTau+TT101+intro", title="Intro", assign_to_all_members=True)

@@ -507,7 +507,7 @@ them daily and let them decide. Use `--dry-run` / `--override` for testing only 
 | `remind_workflow_tasks` | daily | Viewflow task reminders. |
 | `discipline_tasks` | daily | Disciplinary-process follow-ups. |
 | `badge_pnm_notify` | daily | Badge/PNM notifications. |
-| `sync_trainings` / `enroll_all_ed` | daily | Open edX progress sync, and the Open edX course rules (**Trainings > Open edX courses**) applied to every current member and role holder. |
+| `sync_trainings` / `enroll_all_ed` | daily | Open edX progress sync, and the Open edX course rules (**Trainings > Open edX courses**) applied to every current member, PNM, national officer and role holder they cover. |
 | `sync_guardian` | daily → syncs **Tue** | Push the active member roster to the Guardian Conduct System (needs `GUARDIAN_EMAIL`/`GUARDIAN_PASSWORD`, [§3.10](#310-other-integrations--people)). |
 | `sync_quickbooks` | daily | Finances sync. |
 | `generate_transition_obligations` | daily | Create/refresh Transition Report obligations from officer term ends (looks back 365 days, ahead 45 by default, derived from the [§5.4](#54-transition-reports-keys) offsets) and mark past-due ones `missed`. Officers can also press **Start report** on `/transitions/` before their report is assigned; that creates the same obligation, which this command then reuses. Schedule it before the two below. First-run steps: [§8.1](#81-upgrading-into-the-transition-reports-release-october-2026). |

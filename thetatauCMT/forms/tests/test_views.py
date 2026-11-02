@@ -2956,6 +2956,90 @@ def test_officer_add_enrolls_member_in_the_roles_open_edx_courses(auto_login_use
     assert add_ed.call_args.kwargs["courses"] == [course.course_id]
 
 
+def _role_data(member, role):
+    from django.utils import timezone
+
+    start = timezone.now().date()
+    return {
+        "user": str(member.pk),
+        "role": role,
+        "start": start.strftime("%m/%d/%Y"),
+        "end": (start + timezone.timedelta(days=365)).strftime("%m/%d/%Y"),
+    }
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("role", ["regent", "risk management chair"])
+def test_newly_reported_officer_gets_the_roles_vector_groups_and_open_edx_courses(auto_login_user, user_factory, role):
+    """A Regent gets the Regent trainings; Risk Management Chair keeps its seeded Vector group."""
+    from unittest import mock
+
+    from thetatauCMT.trainings.models import EdCourse, VectorGroup
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    member = user_factory.create(chapter=user.chapter)
+    VectorGroup.objects.get_or_create(code=role, defaults={"assign_to_roles": [role]})
+    course = EdCourse.objects.create(
+        course_id="course-v1:ThetaTau+OF101+officer", title="Officer training", assign_to_roles=[role]
+    )
+    with (
+        mock.patch("thetatauCMT.forms.views.Training.add_user") as add_vector,
+        mock.patch("thetatauCMT.forms.views.Training.add_user_ed") as add_ed,
+    ):
+        response = client.post(reverse("forms:officer_add"), _role_data(member, role), follow=True)
+    assert response.status_code == 200
+    add_vector.assert_called_once()
+    assert add_vector.call_args.kwargs["extra_groups"] == [role]
+    assert add_ed.call_args.kwargs["courses"] == [course.course_id]
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)  # superusers bypass RequireSuperuser2FAMiddleware only when DEBUG
+def test_newly_appointed_regional_director_gets_rd_natoff_101_and_cyber(auto_login_user, user_factory):
+    from unittest import mock
+
+    from thetatauCMT.trainings.models import EdCourse, VectorGroup
+
+    client, user = auto_login_user()
+    user.is_superuser = True
+    user.save()
+    member = user_factory.create()
+    rd = EdCourse.objects.create(
+        course_id="course-v1:ThetaTau+RD101+rd", title="RD training", assign_to_roles=["regional director"]
+    )
+    natoff_101 = EdCourse.objects.create(
+        course_id="course-v1:ThetaTau+NO101+natoff", title="NatOff 101", assign_to_national_officers=True
+    )
+    VectorGroup.objects.create(code="cyber", assign_to_national_officers=True)
+    with (
+        mock.patch("thetatauCMT.forms.views.Training.add_user") as add_vector,
+        mock.patch("thetatauCMT.forms.views.Training.add_user_ed") as add_ed,
+    ):
+        response = client.post(reverse("forms:natoff_add"), _role_data(member, "regional director"), follow=True)
+    assert response.status_code == 200
+    assert add_vector.call_args.kwargs["extra_groups"] == ["cyber"]
+    assert {rd.course_id, natoff_101.course_id} <= set(add_ed.call_args.kwargs["courses"])
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)  # superusers bypass RequireSuperuser2FAMiddleware only when DEBUG
+def test_national_officer_add_leaves_vector_alone_without_a_matching_group(auto_login_user, user_factory):
+    from unittest import mock
+
+    client, user = auto_login_user()
+    user.is_superuser = True
+    user.save()
+    member = user_factory.create()
+    with (
+        mock.patch("thetatauCMT.forms.views.Training.add_user") as add_vector,
+        mock.patch("thetatauCMT.forms.views.Training.add_user_ed"),
+    ):
+        response = client.post(reverse("forms:natoff_add"), _role_data(member, "grand scribe"), follow=True)
+    assert response.status_code == 200
+    add_vector.assert_not_called()
+
+
 # ─── InitiationView POST with session and empty formsets ─────────────────────
 
 

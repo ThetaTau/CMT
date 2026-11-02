@@ -1,16 +1,34 @@
+import operator
 from collections import defaultdict
+from functools import reduce
 
 from django.core.management import BaseCommand
+from django.db.models import Q
 
+from core.models import NAT_OFFICERS
 from thetatauCMT.trainings.models import EdCourse, Training
 from thetatauCMT.users.models import User
+
+
+def _audience(course):
+    """Who ``course``'s rules cover today, as a ``User`` filter; ``None`` when it is assigned by hand only."""
+    if course.assign_to_all_members:
+        return Q()
+    parts = []
+    if course.assign_to_new_members:
+        parts.append(Q(current_status="pnm"))
+    if course.assign_to_national_officers:
+        parts.append(Q(current_roles__overlap=NAT_OFFICERS))
+    if course.assign_to_roles:
+        parts.append(Q(current_roles__overlap=course.assign_to_roles))
+    return reduce(operator.or_, parts) if parts else None
 
 
 # python manage.py enroll_all_ed
 class Command(BaseCommand):
     help = (
-        "Apply the Open edX course rules (Trainings > Open edX courses): enroll every active member in the "
-        "every-member courses and current role holders in their role courses."
+        "Apply the Open edX course rules (Trainings > Open edX courses) to everyone who already qualifies: "
+        "every active member, current PNMs, current national officers and current role holders."
     )
 
     def add_arguments(self, parser):
@@ -34,13 +52,10 @@ class Command(BaseCommand):
             courses = courses.filter(course_id__in=options["courses"])
         courses_by_user = defaultdict(list)
         for course in courses:
-            if course.assign_to_all_members:
-                user_ids = members.values_list("id", flat=True)
-            elif course.assign_to_roles:
-                user_ids = members.filter(current_roles__overlap=course.assign_to_roles).values_list("id", flat=True)
-            else:
+            audience = _audience(course)
+            if audience is None:
                 continue
-            for user_id in user_ids:
+            for user_id in members.filter(audience).values_list("id", flat=True):
                 courses_by_user[user_id].append(course.course_id)
 
         users = [user for user in members.order_by("id") if user.id in courses_by_user]

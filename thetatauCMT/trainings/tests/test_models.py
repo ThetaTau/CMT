@@ -10,6 +10,7 @@ from thetatauCMT.trainings.models import (
     EdCourse,
     Training,
     TrainingSystemUnavailable,
+    VectorGroup,
     _lms_response_json,
     _post_lms_json,
 )
@@ -249,16 +250,23 @@ def test_enroll_user_ed_without_courses_does_not_call_open_edx(auto_login_user, 
 
 
 @pytest.mark.django_db
-def test_enroll_user_ed_defaults_to_active_every_member_courses(auto_login_user, monkeypatch):
+def test_enroll_user_ed_defaults_to_active_new_member_courses(auto_login_user, monkeypatch):
+    """What a PNM form submission enrolls: active new-member and every-member courses only."""
     _, user = auto_login_user()
     EdCourse.objects.all().delete()
     everyone = EdCourse.objects.create(
         course_id="course-v1:ThetaTau+TT101+intro", title="Intro", assign_to_all_members=True
     )
+    new_members = EdCourse.objects.create(
+        course_id="course-v1:ThetaTau+HS101+online", title="New member H&S", assign_to_new_members=True
+    )
     EdCourse.objects.create(
         course_id="course-v1:ThetaTau+TT102+old", title="Old", assign_to_all_members=True, active=False
     )
     EdCourse.objects.create(course_id="course-v1:ThetaTau+TT103+officers", title="Officers", assign_to_roles=["regent"])
+    EdCourse.objects.create(
+        course_id="course-v1:ThetaTau+NO101+natoff", title="NatOff 101", assign_to_national_officers=True
+    )
     payloads = []
 
     def fake_post(url, headers=None, json=None, **kwargs):
@@ -269,7 +277,45 @@ def test_enroll_user_ed_defaults_to_active_every_member_courses(auto_login_user,
 
     Training.enroll_user_ed(user, header={"x": "y"})
 
-    assert [payload["courses"] for payload in payloads] == [everyone.course_id]
+    assert [set(payload["courses"].split(",")) for payload in payloads] == [{everyone.course_id, new_members.course_id}]
+
+
+@pytest.mark.django_db
+def test_ed_course_ids_for_role_adds_every_national_officer_courses_for_national_roles():
+    """A newly appointed RD gets the RD course plus every course for all national officers."""
+    EdCourse.objects.all().delete()
+    rd = EdCourse.objects.create(
+        course_id="course-v1:ThetaTau+RD101+rd", title="RD training", assign_to_roles=["regional director"]
+    )
+    natoff_101 = EdCourse.objects.create(
+        course_id="course-v1:ThetaTau+NO101+natoff", title="NatOff 101", assign_to_national_officers=True
+    )
+    cyber = EdCourse.objects.create(
+        course_id="course-v1:ThetaTau+CY101+cyber", title="Cyber training", assign_to_national_officers=True
+    )
+    regent = EdCourse.objects.create(
+        course_id="course-v1:ThetaTau+RG101+regent", title="Regent training", assign_to_roles=["regent"]
+    )
+
+    assert set(EdCourse.course_ids_for_role("regional director")) == {
+        rd.course_id,
+        natoff_101.course_id,
+        cyber.course_id,
+    }
+    assert set(EdCourse.course_ids_for_role("grand scribe")) == {natoff_101.course_id, cyber.course_id}
+    assert EdCourse.course_ids_for_role("regent") == [regent.course_id]
+
+
+@pytest.mark.django_db
+def test_vector_group_codes_for_role():
+    VectorGroup.objects.all().delete()
+    regents = VectorGroup.objects.create(code="regents", assign_to_roles=["regent"])
+    natoff = VectorGroup.objects.create(code="cyber", assign_to_national_officers=True)
+    VectorGroup.objects.create(code="retired", assign_to_roles=["regent"], active=False)
+
+    assert VectorGroup.codes_for_role("regent") == [regents.code]
+    assert VectorGroup.codes_for_role("vice regent") == []
+    assert VectorGroup.codes_for_role("regional director") == [natoff.code]
 
 
 @pytest.mark.django_db
@@ -289,16 +335,21 @@ def test_ed_course_ids_for_role_matches_whole_role_names_on_active_courses():
 
 
 @pytest.mark.django_db
-def test_migration_seeds_ed_courses_for_every_member_and_national_officers():
-    """Migration 0004 carries settings.ED_COURSES over so enrollment does not change on deploy."""
+def test_migrations_carry_ed_courses_over_for_every_member_and_national_officers():
+    """settings.ED_COURSES becomes every member + every national officer, so enrollment does not change."""
     from django.conf import settings
-
-    from core.models import NAT_OFFICERS
 
     for course_id in settings.ED_COURSES:
         course = EdCourse.objects.get(course_id=course_id)
-        assert course.active and course.assign_to_all_members
-        assert sorted(course.assign_to_roles) == sorted(NAT_OFFICERS)
+        assert course.active and course.assign_to_all_members and course.assign_to_national_officers
+        assert course.assign_to_roles == []
+
+
+@pytest.mark.django_db
+def test_migration_turns_the_hard_coded_vector_roles_into_groups():
+    """Officer adds keep sending these two roles to Vector, now as rows an admin can change."""
+    for role in ("pledge/new member educator", "risk management chair"):
+        assert VectorGroup.codes_for_role(role) == [role]
 
 
 def test_ed_normalize_strips_case_and_punctuation():
@@ -474,6 +525,58 @@ def test_add_user_survives_non_json_addjob_response(auto_login_user, monkeypatch
     # Must not raise even though the addJob response body is not valid JSON.
     response = Training.add_user(user, extra_group="risk management chair")
     assert response.status_code == 200
+
+
+class _VectorResponse:
+    def __init__(self, status_code=200, body=None):
+        self.status_code = status_code
+        self._body = body or {}
+
+    def json(self):
+        return self._body
+
+
+def _fake_vector(monkeypatch, add_person_statuses):
+    """Stub Vector: ``addPerson`` answers each status in turn; return the groups given jobs."""
+    monkeypatch.setattr(Training, "authenticate_header", staticmethod(lambda: {"Authorization": "x"}))
+    monkeypatch.setattr(
+        Training,
+        "get_location_position_ids",
+        staticmethod(lambda position, location: (f"loc-{location}", f"pos-{position}")),
+    )
+    monkeypatch.setattr("thetatauCMT.trainings.models.sleep", lambda *a, **k: None)
+    statuses = list(add_person_statuses)
+    jobs = []
+
+    def fake_post(*args, **kwargs):
+        query = (kwargs.get("json") or {}).get("query", "")
+        if "addJob" in query:
+            jobs.append(query.split('positionId:"pos-')[1].split('"')[0])
+            return _VectorResponse(body={"data": {"Person": {"addJob": {"jobId": "J"}}}})
+        return _VectorResponse(statuses.pop(0), {"data": {"addPerson": {"personId": "PID-1"}}})
+
+    monkeypatch.setattr("thetatauCMT.trainings.models.requests.post", fake_post)
+    return jobs
+
+
+@pytest.mark.django_db
+def test_add_user_adds_every_requested_vector_group(auto_login_user, monkeypatch):
+    _, user = auto_login_user()
+    jobs = _fake_vector(monkeypatch, [200])
+
+    Training.add_user(user, extra_groups=["regents", "officer basics"])
+
+    assert jobs == ["regents", "officer basics"]
+
+
+@pytest.mark.django_db
+def test_add_user_keeps_its_vector_groups_after_a_rate_limit(auto_login_user, monkeypatch):
+    _, user = auto_login_user()
+    jobs = _fake_vector(monkeypatch, [429, 200])
+
+    Training.add_user(user, extra_group="risk management chair")
+
+    assert jobs == ["risk management chair"]
 
 
 def test_get_location_position_ids_missing_location_returns_none(monkeypatch):

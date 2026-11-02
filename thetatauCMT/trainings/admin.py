@@ -4,8 +4,8 @@ from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 
-from .forms import EdCourseAdminForm, UserAdminTrainingForm
-from .models import EdCourse, Training
+from .forms import EdCourseAdminForm, UserAdminTrainingForm, VectorGroupAdminForm
+from .models import EdCourse, Training, VectorGroup
 
 logger = logging.getLogger(__name__)
 
@@ -102,13 +102,32 @@ class TrainingAdmin(admin.ModelAdmin):
     ]
 
 
+@admin.display(description="Assign to roles")
+def _roles_display(_admin, obj):
+    return "; ".join(role.title() for role in obj.assign_to_roles) or "None"
+
+
 @admin.register(EdCourse)
 class EdCourseAdmin(admin.ModelAdmin):
     form = EdCourseAdminForm
-    list_display = ("title", "course_id", "active", "assign_to_all_members", "roles_display")
-    list_filter = ("active", "assign_to_all_members")
+    list_display = (
+        "title",
+        "course_id",
+        "active",
+        "assign_to_new_members",
+        "assign_to_all_members",
+        "assign_to_national_officers",
+        "roles_display",
+    )
+    list_filter = ("active", "assign_to_new_members", "assign_to_all_members", "assign_to_national_officers")
     search_fields = ("title", "course_id")
+    roles_display = _roles_display
 
-    @admin.display(description="Assign to roles")
-    def roles_display(self, obj):
-        return "; ".join(role.title() for role in obj.assign_to_roles) or "None"
+
+@admin.register(VectorGroup)
+class VectorGroupAdmin(admin.ModelAdmin):
+    form = VectorGroupAdminForm
+    list_display = ("code", "active", "assign_to_national_officers", "roles_display")
+    list_filter = ("active", "assign_to_national_officers")
+    search_fields = ("code",)
+    roles_display = _roles_display

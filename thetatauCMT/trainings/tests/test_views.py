@@ -340,16 +340,21 @@ def test_assign_training_admin_action_reports_open_edx_sign_in_failure_once(user
 
 
 @pytest.mark.django_db
-def test_ed_course_admin_form_keeps_role_names_that_contain_commas():
-    from thetatauCMT.trainings.forms import EdCourseAdminForm
+@pytest.mark.parametrize(
+    "form_name, fields",
+    [
+        ("EdCourseAdminForm", {"course_id": "course-v1:ThetaTau+TT901+dei", "title": "DEI"}),
+        ("VectorGroupAdminForm", {"code": "dei chairs"}),
+    ],
+)
+def test_rule_admin_forms_keep_role_names_that_contain_commas(form_name, fields):
+    from thetatauCMT.trainings import forms
 
     roles = ["diversity, equity, and inclusion chair", "regent"]
-    form = EdCourseAdminForm(
-        data={"course_id": "course-v1:ThetaTau+TT901+dei", "title": "DEI", "active": "on", "assign_to_roles": roles}
-    )
+    form = getattr(forms, form_name)(data={**fields, "active": "on", "assign_to_roles": roles})
 
     assert form.is_valid(), form.errors
-    assert EdCourse.objects.get(pk=form.save().pk).assign_to_roles == roles
+    assert type(form.instance).objects.get(pk=form.save().pk).assign_to_roles == roles
 
 
 @pytest.mark.django_db

@@ -256,20 +256,36 @@ Don't fight the self-enroll gate. Enroll **as staff** through the API:
 - **Which courses, for whom:** CMT admin > **Trainings > Open edX courses**
   (`trainings.EdCourse`) is the Open edX version of Vector's position rules. Add the
   course run key and a title, then choose who gets it:
-  - **Assign to every member:** enrolled when their PNM form is submitted.
-  - **Assign to roles:** enrolled when an officer adds them to one of these roles
-    (chapter officer list or national officer list).
-  - Neither: the course is only assigned by hand.
+  - **Assign to new members:** enrolled when their PNM form is submitted.
+  - **Assign to every member:** the same, and the backfill below enrolls every
+    current member too.
+  - **Assign to every national officer:** enrolled when any national officer role is
+    recorded, including roles added to CMT later.
+  - **Assign to roles:** enrolled when an officer reports them in one of these roles
+    (chapter officer list) or a national officer role is recorded for them (national
+    officer list).
+  - None of these: the course is only assigned by hand.
 
   Migration `trainings 0004` seeded the course(s) from `ED_COURSES` with *every
-  member* plus all national officer roles, which is what CMT did before.
+  member* plus all national officer roles, which is what CMT did before; `0005`
+  turned that role list into the *every national officer* box.
+
+  Example: a Regent course gets *Assign to roles: Regent*; an RD course gets
+  *Assign to roles: Regional Director*; NatOff 101 and a cyber course get *Assign to
+  every national officer*. A newly appointed RD then gets all three.
+- **Vector works the same way:** CMT admin > **Trainings > Vector groups**
+  (`trainings.VectorGroup`) lists the Vector groups (positions) CMT adds people to;
+  Vector's own rules attach the courses to each group. Officer and national officer
+  adds use these rows, and the PNM form still adds every new member to Vector as a
+  PNM. Migration `0005` seeded the two groups that used to be hard-coded
+  (Pledge/New Member Educator, Risk Management Chair).
 - **Assign by hand:** CMT admin > **Users**, tick the member(s), action **Assign
   Member Training**, choose **ED.thetatau** and tick the course(s). Each person's
   result (enrolled, pending until first sign-in, or the error) is shown after it runs.
-- **Backfill:** `python manage.py enroll_all_ed` applies the rules to everyone who
-  already qualifies (every active member for every-member courses, current role
-  holders for role courses). `--course <run key>` limits it to one course, `--limit N`
-  to a test batch.
+- **Backfill:** `python manage.py enroll_all_ed` applies the Open edX rules to
+  everyone who already qualifies (every active member, current PNMs, current national
+  officers, current role holders). `--course <run key>` limits it to one course,
+  `--limit N` to a test batch.
 - **Visible in CMT:** every assignment adds an incomplete row to Chapter training
   records, so pending enrollments show before the member first signs in.
 - **SSO + enroll in one hop (deep link):** send a member to

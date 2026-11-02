@@ -6,7 +6,7 @@ from django.contrib.admin.widgets import FilteredSelectMultiple
 
 from core.models import ALL_ROLES_CHOICES
 
-from .models import EdCourse
+from .models import EdCourse, VectorGroup
 
 
 class TrainingListFormHelper(FormHelper):
@@ -101,7 +101,7 @@ class UserAdminTrainingForm(forms.Form):
             self.cleaned_data["extra_group"] = new_group
 
 
-class EdCourseAdminForm(forms.ModelForm):
+class _RoleRulesForm(forms.ModelForm):
     # The default ArrayField widget is a comma-separated text box, which cannot
     # hold "diversity, equity, and inclusion chair".
     assign_to_roles = forms.MultipleChoiceField(
@@ -109,9 +109,28 @@ class EdCourseAdminForm(forms.ModelForm):
         choices=ALL_ROLES_CHOICES,
         required=False,
         widget=FilteredSelectMultiple("roles", is_stacked=False),
-        help_text=EdCourse._meta.get_field("assign_to_roles").help_text,
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["assign_to_roles"].help_text = self._meta.model._meta.get_field("assign_to_roles").help_text
+
+
+class EdCourseAdminForm(_RoleRulesForm):
     class Meta:
         model = EdCourse
-        fields = ["course_id", "title", "active", "assign_to_all_members", "assign_to_roles"]
+        fields = [
+            "course_id",
+            "title",
+            "active",
+            "assign_to_new_members",
+            "assign_to_all_members",
+            "assign_to_national_officers",
+            "assign_to_roles",
+        ]
+
+
+class VectorGroupAdminForm(_RoleRulesForm):
+    class Meta:
+        model = VectorGroup
+        fields = ["code", "active", "assign_to_national_officers", "assign_to_roles"]

@@ -16,7 +16,7 @@ from django.http import Http404
 from django.utils import timezone
 
 import core.requests as requests
-from core.models import ALL_ROLES_CHOICES, TimeStampedModel
+from core.models import ALL_ROLES_CHOICES, NAT_OFFICERS, TimeStampedModel
 from thetatauCMT.users.models import User
 
 logger = logging.getLogger(__name__)
@@ -121,6 +121,14 @@ COMMUNITY_EDU_COURSE_ID = "5d7b72cf-7e22-43a3-a4aa-628d8ee6c1a9"
 COMMUNITY_EDU_COURSE_TITLE = "CommunityEdu: Fraternity & Sorority Life"
 
 
+def _rules_for_role(role):
+    """Rules covering ``role``: listed by name, or any national role via the national officer box."""
+    rules = Q(assign_to_roles__contains=[role])
+    if role in NAT_OFFICERS:
+        rules |= Q(assign_to_national_officers=True)
+    return rules
+
+
 class EdCourse(TimeStampedModel):
     """An Open edX (``settings.ED_HOST``) course run CMT can enroll members in.
 
@@ -145,6 +153,14 @@ class EdCourse(TimeStampedModel):
         default=True,
         help_text="Only active courses can be assigned, by hand or automatically.",
     )
+    assign_to_new_members = models.BooleanField(
+        "Assign to new members",
+        default=False,
+        help_text=(
+            "Enroll each prospective new member when their PNM form is submitted. "
+            "The enroll_all_ed command also enrolls current PNMs."
+        ),
+    )
     assign_to_all_members = models.BooleanField(
         "Assign to every member",
         default=False,
@@ -152,6 +168,11 @@ class EdCourse(TimeStampedModel):
             "Enroll each new member when their PNM form is submitted. "
             "The enroll_all_ed command also enrolls every current member."
         ),
+    )
+    assign_to_national_officers = models.BooleanField(
+        "Assign to every national officer",
+        default=False,
+        help_text="Enroll a member when they start any national officer role, including roles added later.",
     )
     # An array, not a MultiSelectField: "diversity, equity, and inclusion chair"
     # contains commas, which a comma-joined field would split apart.
@@ -171,14 +192,52 @@ class EdCourse(TimeStampedModel):
         return self.title
 
     @classmethod
-    def course_ids_for_all_members(cls):
-        return list(cls.objects.filter(active=True, assign_to_all_members=True).values_list("course_id", flat=True))
+    def course_ids_for_new_members(cls):
+        joining = Q(assign_to_new_members=True) | Q(assign_to_all_members=True)
+        return list(cls.objects.filter(joining, active=True).values_list("course_id", flat=True))
 
     @classmethod
     def course_ids_for_role(cls, role):
-        return list(
-            cls.objects.filter(active=True, assign_to_roles__contains=[role]).values_list("course_id", flat=True)
-        )
+        return list(cls.objects.filter(_rules_for_role(role), active=True).values_list("course_id", flat=True))
+
+
+class VectorGroup(TimeStampedModel):
+    """A Vector LMS group (position) CMT adds members to; Vector's own rules attach its courses."""
+
+    code = models.CharField(
+        "Vector group",
+        max_length=100,
+        unique=True,
+        help_text=(
+            "The group's name in Vector. Vector tells groups apart by their first 8 characters, "
+            "so keep those unique. A group Vector does not have yet is created the first time "
+            "someone is added to it."
+        ),
+    )
+    active = models.BooleanField(default=True, help_text="Only active groups are assigned automatically.")
+    assign_to_national_officers = models.BooleanField(
+        "Assign to every national officer",
+        default=False,
+        help_text="Add a member when they start any national officer role, including roles added later.",
+    )
+    assign_to_roles = ArrayField(
+        models.CharField(max_length=50, choices=ALL_ROLES_CHOICES),
+        verbose_name="Assign to roles",
+        blank=True,
+        default=list,
+        help_text="Add a member when they start one of these roles.",
+    )
+
+    class Meta:
+        ordering = ["code"]
+        verbose_name = "Vector group"
+
+    def __str__(self):
+        return self.code
+
+    @classmethod
+    def codes_for_role(cls, role):
+        return list(cls.objects.filter(_rules_for_role(role), active=True).values_list("code", flat=True))
 
 
 class Training(TimeStampedModel):
@@ -485,7 +544,7 @@ class Training(TimeStampedModel):
         return location_id, position_id
 
     @staticmethod
-    def add_user(user, extra_group=None, request=None):
+    def add_user(user, extra_group=None, request=None, extra_groups=()):
         """Add ``user`` to the Vector LMS, degrading gracefully when it is down.
 
         Wraps :meth:`_add_user` so a Vector LMS outage surfaces a friendly
@@ -494,7 +553,7 @@ class Training(TimeStampedModel):
         (issues #840, #862, #877, #879, #917, #979).
         """
         try:
-            return Training._add_user(user, extra_group=extra_group, request=request)
+            return Training._add_user(user, extra_group=extra_group, request=request, extra_groups=extra_groups)
         except (TrainingSystemUnavailable, requests.RequestException):
             logger.exception("Training add_user failed for %s: training system unavailable", user)
             if request is not None:
@@ -507,7 +566,8 @@ class Training(TimeStampedModel):
             return None
 
     @staticmethod
-    def _add_user(user, extra_group=None, request=None):
+    def _add_user(user, extra_group=None, request=None, extra_groups=()):
+        groups = [group for group in (extra_group, *extra_groups) if group]
         message = ""
         level = messages.INFO
         authenticate_header = Training.authenticate_header()
@@ -698,19 +758,20 @@ class Training(TimeStampedModel):
                 else:
                     message += f" Could NOT add {user} to extra_group=natoff; training system unavailable, please try again later."
                     level = max(level, messages.WARNING)
-            if person_id and extra_group:
-                if add_extra_group(extra_group, user.chapter.name, person_id):
-                    message += f" Added {user} to {extra_group=} and location={user.chapter.name}"
+            for group in groups if person_id else []:
+                if add_extra_group(group, user.chapter.name, person_id):
+                    message += f" Added {user} to extra_group={group!r} and location={user.chapter.name}"
                 else:
                     message += (
-                        f" Could NOT add {user} to {extra_group=}; training system unavailable, please try again later."
+                        f" Could NOT add {user} to extra_group={group!r}; training system unavailable, "
+                        "please try again later."
                     )
                     level = max(level, messages.WARNING)
         elif response.status_code == 429:
             # 150 requests per rolling 300 seconds
             sleep(120)
             logger.warning("Delaying for rate limit add training user")
-            Training.add_user(user, request=request)
+            Training.add_user(user, request=request, extra_groups=groups)
             return
         else:
             message = f"{user} NOT added to training system, maybe an error. {response}"
@@ -902,7 +963,7 @@ class Training(TimeStampedModel):
     def enroll_user_ed(user, courses=None, header=None, request=None, _retried=False):
         """Enroll ``user`` in Open edX course run(s).
 
-        ``courses`` defaults to the active "every member" ``EdCourse`` rows.
+        ``courses`` defaults to the active courses for new members (``EdCourse.course_ids_for_new_members``).
         Returns a list of ``(course_id, status, message)`` tuples.
 
         ``bulk_enroll`` always answers ``200 OK`` when the payload is valid; the
@@ -915,7 +976,7 @@ class Training(TimeStampedModel):
         states are parsed so each outcome is reported accurately.
         """
         if courses is None:
-            courses = EdCourse.course_ids_for_all_members()
+            courses = EdCourse.course_ids_for_new_members()
         if not courses:
             return []
         if header is None:
@@ -1004,7 +1065,7 @@ class Training(TimeStampedModel):
 
     @staticmethod
     def add_user_ed(user, request=None, courses=None):
-        """Enroll ``user`` in Open edX ``courses`` (default: the every-member courses).
+        """Enroll ``user`` in Open edX ``courses`` (default: the new-member courses).
 
         Thin wrapper around :meth:`enroll_user_ed` for the PNM form and the
         officer role views.
