@@ -6,6 +6,7 @@ from the browser URL via `dcc.Location`; national officers can override the
 scope with the region dropdown at the top of the layout.
 """
 
+import bisect
 import datetime
 from collections import defaultdict
 
@@ -75,6 +76,21 @@ SUPPORT_SCOPE = "support"
 # Class standing from the expected graduation year, youngest first.
 CLASS_STANDINGS = ["Freshman", "Sophomore", "Junior", "Senior", "5th year +"]
 CLASS_STANDING_COLORS = px.colors.qualitative.Safe
+
+# A member's average GPA over the academic year, lowest band first; the two lowest are at academic risk.
+GPA_BANDS = ["Below 2.0", "2.0 to 2.49", "2.5 to 2.99", "3.0 to 3.49", "3.5 and up"]
+GPA_BAND_FLOORS = [2.0, 2.5, 3.0, 3.5]
+GPA_BAND_COLORS = [px.colors.diverging.RdYlBu[i] for i in (1, 2, 3, 8, 9)]
+
+# The academic year's membership changes, top to bottom, by what each means for the chapter.
+MEMBERSHIP_CHANGES = {
+    "Joined or returned": ["New PNMs", "Initiated", "Returned to student status"],
+    "Away for a time": ["Co-op or study abroad", "Military deployment"],
+    "Left": ["Graduated", "Premature alumni", "Withdrew from school", "Transferred", "Resigned", "Depledged"],
+}
+
+# How many organizations the professional and technical societies chart lists.
+TOP_SOCIETIES = 10
 
 # A sign-in within this many days counts as using CMT.
 CMT_USE_DAYS = 90
@@ -251,6 +267,10 @@ def class_standing(graduation_year, today):
     return CLASS_STANDINGS[max(0, 3 - years_left)]
 
 
+def gpa_band(gpa):
+    return GPA_BANDS[bisect.bisect_right(GPA_BAND_FLOORS, gpa)]
+
+
 # ---------------------------------------------------------------------------
 # Layout helpers
 # ---------------------------------------------------------------------------
@@ -275,13 +295,14 @@ def _kpi_card(card_id, label, subtitle="", note=False):
     )
 
 
-def _panel(title, graph_id, sm_cols=12, md_cols=12):
+def _panel(title, graph_id, sm_cols=12, md_cols=12, **div_props):
     # NOTE: do NOT wrap `dcc.Graph` in `dcc.Loading` here — in dash 4.x the
     # Loading component's children-normalisation drops nested Dash components
     # (see empty `card-body` in the rendered HTML). Dash 4 shows loading state
     # on the target output automatically, so this wrapper is redundant anyway.
     return html.Div(
         className=f"col-{sm_cols} col-md-{md_cols} mb-3",
+        **div_props,
         children=html.Div(
             className="card shadow-sm bg-body-tertiary text-body border-0 h-100",
             children=[
@@ -325,7 +346,7 @@ HEALTH_CARDS = [
 # Hidden on the member home page and a CSS's landing page; shown on the region pages.
 REGION_ONLY_IDS = ["tab-health", "careers-region-only", "trends-region-only"]
 # Shown on the region pages and a CSS's landing page.
-REGION_AND_CSS_IDS = ["tab-trends"]
+REGION_AND_CSS_IDS = ["tab-trends", "gpa-mix-panel"]
 
 
 # ---------------------------------------------------------------------------
@@ -430,6 +451,7 @@ app.layout = html.Div(
                         children=[
                             _panel("Student members by chapter", "members-by-chapter"),
                             _panel("Class year mix (student members, from expected graduation year)", "class-year-mix"),
+                            _panel("Membership changes in the academic year", "membership-changes"),
                             _panel("Initiations by chapter", "initiations-by-chapter"),
                             _panel("Graduates by chapter", "graduates-by-chapter"),
                             _panel("Depledges by chapter", "depledges-by-chapter"),
@@ -445,11 +467,20 @@ app.layout = html.Div(
                         className="row",
                         children=[
                             _panel("Events logged by chapter", "events-by-chapter"),
+                            _panel("Events by category", "events-by-category"),
                             _panel("Submissions by chapter", "submissions-by-chapter"),
+                            _panel("Submissions by category", "submissions-by-category"),
                             _panel("Tasks completed by chapter", "tasks-by-chapter"),
                             _panel("Trainings completed by chapter", "trainings-by-chapter"),
                             _panel("Average GPA", "gpa-by-chapter"),
+                            _panel(
+                                "GPA mix (members reporting a GPA, averaged over the year)",
+                                "gpa-mix",
+                                id="gpa-mix-panel",
+                                style={"display": "none"},
+                            ),
                             _panel("Service hours", "service-hours-by-chapter"),
+                            _panel("Funds raised at events", "funds-raised-by-chapter"),
                         ],
                     ),
                 ),
@@ -526,6 +557,7 @@ app.layout = html.Div(
                                     sm_cols=12,
                                     md_cols=6,
                                 ),
+                                _panel("Top professional and technical societies (members)", "top-societies"),
                             ],
                         ),
                         html.Div(
@@ -937,6 +969,54 @@ def _ay_kpis(chapters, ay):
     }
 
 
+def _membership_changes(chapters, ay):
+    """The academic year's counts for each label in `MEMBERSHIP_CHANGES`."""
+    from thetatauCMT.forms.models import (
+        Depledge,
+        Initiation,
+        PrematureAlumnus,
+        ResignationProcess,
+        ReturnStudent,
+        StatusChange,
+    )
+    from thetatauCMT.users.models import UserStatusChange
+
+    ay_start, ay_end = ay_dates(ay)
+    start, end = ay_start.date(), ay_end.date()
+    reported = {
+        row["reason"]: row["count"]
+        for row in StatusChange.objects.filter(
+            user__chapter__in=chapters,
+            reason__in=["coop", "military", "withdraw", "transfer", "resignedCC"],
+            date_start__gte=start,
+            date_start__lt=end,
+        )
+        .values("reason")
+        .annotate(count=Count("user", distinct=True))
+    }
+    approved = {"approved_exec": True, "finished__gte": ay_start, "finished__lt": ay_end}
+    return {
+        "New PNMs": UserStatusChange.objects.filter(
+            status="pnm", start__gte=start, start__lt=end, user__chapter__in=chapters
+        )
+        .values("user_id")
+        .distinct()
+        .count(),
+        "Initiated": Initiation.objects.filter(chapter__in=chapters, date__gte=start, date__lt=end).count(),
+        "Returned to student status": ReturnStudent.objects.filter(user__chapter__in=chapters, **approved).count(),
+        "Co-op or study abroad": reported.get("coop", 0),
+        "Military deployment": reported.get("military", 0),
+        "Graduated": _graduations(chapters, ay).values("user_id").distinct().count(),
+        "Premature alumni": PrematureAlumnus.objects.filter(user__chapter__in=chapters, **approved).count(),
+        "Withdrew from school": reported.get("withdraw", 0),
+        "Transferred": reported.get("transfer", 0),
+        # Candidate chapter members resign with a status change instead of the resignation form.
+        "Resigned": ResignationProcess.objects.filter(chapter__in=chapters, **approved).count()
+        + reported.get("resignedCC", 0),
+        "Depledged": Depledge.objects.filter(user__chapter__in=chapters, date__gte=start, date__lt=end).count(),
+    }
+
+
 @app.callback(
     [Output(card_id, "children") for card_id, _, _ in KPI_CARDS]
     + [Output(f"{card_id}-note", "children") for card_id, _, _ in KPI_CARDS],
@@ -1132,8 +1212,8 @@ def _add_reference_line(fig, value, label):
     return fig
 
 
-def _bar_by_term(rows, y_label, theme, value_format):
-    """One chapter's academic year: a bar per term, with how many members reported it."""
+def _bar_by_term(rows, y_label, theme, value_format, count_label="Members reporting"):
+    """One chapter's academic year: a bar per term, with how many rows each one rolls up."""
     if not rows:
         return _empty_figure(theme, "No data for this period")
     values = [row["value"] for row in rows]
@@ -1144,12 +1224,96 @@ def _bar_by_term(rows, y_label, theme, value_format):
             text=[value_format.format(value) for value in values],
             textposition="outside",
             cliponaxis=False,
-            customdata=[row["members"] for row in rows],
+            customdata=[row["count"] for row in rows],
             marker_color=REGION_PALETTE[0],
-            hovertemplate=f"%{{x}}<br>{y_label}=%{{text}}<br>Members reporting=%{{customdata}}<extra></extra>",
+            hovertemplate=f"%{{x}}<br>{y_label}=%{{text}}<br>{count_label}=%{{customdata}}<extra></extra>",
         )
     )
     fig.update_layout(showlegend=False, xaxis_title=None, yaxis_title=y_label)
+    return _apply_theme(fig, theme)
+
+
+def _mix_chart(counts, categories, colors, at_risk, theme, single, legend_title, y_label):
+    """Members by category: counts for one chapter; for more, each chapter's mix, most `at_risk` first."""
+    if single:
+        (mix,) = counts.values()
+        values = [mix[category] for category in categories]
+        fig = go.Figure(
+            go.Bar(
+                x=categories,
+                y=values,
+                text=values,
+                textposition="outside",
+                cliponaxis=False,
+                marker_color=colors[: len(categories)],
+                hovertemplate="%{x}<br>Members=%{y}<extra></extra>",
+            )
+        )
+        fig.update_layout(showlegend=False, xaxis_title=None, yaxis_title="Members")
+        return _apply_theme(fig, theme)
+
+    totals = {name: sum(mix.values()) for name, mix in counts.items()}
+    risk = {name: sum(mix[category] for category in at_risk) / totals[name] for name, mix in counts.items()}
+    order = sorted(counts, key=lambda name: (-risk[name], name))
+    fig = go.Figure()
+    for category, color in zip(categories, colors):
+        fig.add_trace(
+            go.Bar(
+                x=order,
+                y=[round(counts[name][category] / totals[name] * 100, 1) for name in order],
+                customdata=[counts[name][category] for name in order],
+                name=category,
+                marker_color=color,
+                hovertemplate=f"Chapter=%{{x}}<br>{category}=%{{customdata}} (%{{y:.0f}}%)<extra></extra>",
+            )
+        )
+    fig.update_layout(
+        barmode="stack",
+        bargap=0.15,
+        xaxis_title=None,
+        xaxis_tickangle=-45,
+        yaxis_title=y_label,
+        legend_title_text=legend_title,
+    )
+    _apply_theme(fig, theme)
+    # Above the bars: below, it collides with the rotated chapter names.
+    fig.update_layout(legend=dict(yanchor="bottom", y=1.02, xanchor="right", x=1))
+    return fig
+
+
+def _by_score_type(rows, x_label, theme):
+    """Counts by score type, the category picked when an event or submission is logged, coloured by section."""
+    from thetatauCMT.scores.models import ScoreType
+
+    if not rows:
+        return _empty_figure(theme, "No data for this period")
+    order = [row["type__name"] for row in sorted(rows, key=lambda row: (-row["count"], row["type__name"]))]
+    fig = go.Figure()
+    for (section, name), color in zip((section.value for section in ScoreType.SECTION), REGION_PALETTE):
+        group = [row for row in rows if row["type__section"] == section]
+        if not group:
+            continue
+        counts = [row["count"] for row in group]
+        fig.add_trace(
+            go.Bar(
+                x=counts,
+                y=[row["type__name"] for row in group],
+                name=name,
+                orientation="h",
+                marker_color=color,
+                text=counts,
+                textposition="outside",
+                cliponaxis=False,
+                hovertemplate=f"%{{y}}<br>{x_label}=%{{x}}<extra></extra>",
+            )
+        )
+    fig.update_layout(
+        barmode="overlay",
+        xaxis_title=x_label,
+        # Most common at the top.
+        yaxis=dict(title=None, categoryorder="array", categoryarray=order, autorange="reversed"),
+        legend_title_text="Section",
+    )
     return _apply_theme(fig, theme)
 
 
@@ -1191,54 +1355,50 @@ def class_year_mix(region_slug, theme):
         counts[row["chapter__name"]][class_standing(row["graduation_year"], today)] += row["count"]
     if not counts:
         return _empty_figure(theme, "No student members")
+    # Seniors and 5th years are the members about to leave.
+    return _mix_chart(
+        counts,
+        CLASS_STANDINGS,
+        CLASS_STANDING_COLORS,
+        CLASS_STANDINGS[-2:],
+        theme,
+        _is_chapter_scope(region_slug),
+        "Class",
+        "Share of student members (%)",
+    )
 
-    if _is_chapter_scope(region_slug):
-        (mix,) = counts.values()
-        values = [mix[standing] for standing in CLASS_STANDINGS]
-        fig = go.Figure(
+
+@app.callback(
+    Output("membership-changes", "figure"),
+    [
+        Input("region-slug-store", "data"),
+        Input("ay-store", "data"),
+        Input("theme-store", "data"),
+    ],
+)
+def membership_changes(region_slug, ay_start_year, theme):
+    """Who joined, came back, stepped away or left during the academic year."""
+    counts = _membership_changes(get_scope_chapters(region_slug), _ay_start(ay_start_year))
+    if not any(counts.values()):
+        return _empty_figure(theme, "No membership changes for this period")
+    fig = go.Figure()
+    for (group, labels), color in zip(MEMBERSHIP_CHANGES.items(), REGION_PALETTE):
+        values = [counts[label] for label in labels]
+        fig.add_trace(
             go.Bar(
-                x=CLASS_STANDINGS,
-                y=values,
+                x=values,
+                y=labels,
+                name=group,
+                orientation="h",
+                marker_color=color,
                 text=values,
                 textposition="outside",
                 cliponaxis=False,
-                marker_color=CLASS_STANDING_COLORS[: len(CLASS_STANDINGS)],
-                hovertemplate="%{x}<br>Members=%{y}<extra></extra>",
+                hovertemplate="%{y}=%{x}<extra></extra>",
             )
         )
-        fig.update_layout(showlegend=False, xaxis_title=None, yaxis_title="Members")
-        return _apply_theme(fig, theme)
-
-    totals = {name: sum(mix.values()) for name, mix in counts.items()}
-    leaving = {
-        name: sum(mix[standing] for standing in CLASS_STANDINGS[-2:]) / totals[name] for name, mix in counts.items()
-    }
-    # Chapters about to lose the largest share of their members come first.
-    order = sorted(counts, key=lambda name: (-leaving[name], name))
-    fig = go.Figure()
-    for standing, color in zip(CLASS_STANDINGS, CLASS_STANDING_COLORS):
-        fig.add_trace(
-            go.Bar(
-                x=order,
-                y=[round(counts[name][standing] / totals[name] * 100, 1) for name in order],
-                customdata=[counts[name][standing] for name in order],
-                name=standing,
-                marker_color=color,
-                hovertemplate=f"Chapter=%{{x}}<br>{standing}=%{{customdata}} (%{{y:.0f}}%)<extra></extra>",
-            )
-        )
-    fig.update_layout(
-        barmode="stack",
-        bargap=0.15,
-        xaxis_title=None,
-        xaxis_tickangle=-45,
-        yaxis_title="Share of student members (%)",
-        legend_title_text="Class",
-    )
-    _apply_theme(fig, theme)
-    # Above the bars: below, it collides with the rotated chapter names.
-    fig.update_layout(legend=dict(yanchor="bottom", y=1.02, xanchor="right", x=1))
-    return fig
+    fig.update_layout(barmode="overlay", xaxis_title="Count", yaxis=dict(title=None, autorange="reversed"))
+    return _apply_theme(fig, theme)
 
 
 @app.callback(
@@ -1359,6 +1519,54 @@ def submissions_by_chapter(region_slug, ay_start_year, theme):
 
 
 @app.callback(
+    Output("events-by-category", "figure"),
+    [
+        Input("region-slug-store", "data"),
+        Input("ay-store", "data"),
+        Input("theme-store", "data"),
+    ],
+)
+def events_by_category(region_slug, ay_start_year, theme):
+    from thetatauCMT.events.models import Event
+
+    ay_start, ay_end = ay_dates(ay_start_year)
+    rows = list(
+        Event.objects.filter(
+            chapter__in=get_scope_chapters(region_slug),
+            date__gte=ay_start.date(),
+            date__lt=ay_end.date(),
+        )
+        .values("type__name", "type__section")
+        .annotate(count=Count("id"))
+    )
+    return _by_score_type(rows, "Events", theme)
+
+
+@app.callback(
+    Output("submissions-by-category", "figure"),
+    [
+        Input("region-slug-store", "data"),
+        Input("ay-store", "data"),
+        Input("theme-store", "data"),
+    ],
+)
+def submissions_by_category(region_slug, ay_start_year, theme):
+    from thetatauCMT.submissions.models import Submission
+
+    ay_start, ay_end = ay_dates(ay_start_year)
+    rows = list(
+        Submission.objects.filter(
+            chapter__in=get_scope_chapters(region_slug),
+            date__gte=ay_start.date(),
+            date__lt=ay_end.date(),
+        )
+        .values("type__name", "type__section")
+        .annotate(count=Count("id"))
+    )
+    return _by_score_type(rows, "Submissions", theme)
+
+
+@app.callback(
     Output("tasks-by-chapter", "figure"),
     [
         Input("region-slug-store", "data"),
@@ -1426,9 +1634,7 @@ def gpa_by_chapter(region_slug, ay_start_year, theme):
     )
     if _is_chapter_scope(region_slug):
         rows = list(
-            gpas.values("year", "term")
-            .annotate(value=Avg("gpa"), members=Count("user", distinct=True))
-            .order_by("year")
+            gpas.values("year", "term").annotate(value=Avg("gpa"), count=Count("user", distinct=True)).order_by("year")
         )
         return _bar_by_term(rows, "Average GPA", theme, "{:.2f}")
     rows = list(gpas.values("user__chapter__name", "user__chapter__region__name").annotate(count=Avg("gpa")))
@@ -1438,6 +1644,43 @@ def gpa_by_chapter(region_slug, ay_start_year, theme):
     if rows:
         _add_reference_line(fig, gpas.aggregate(average=Avg("gpa"))["average"], "Average {:.2f}")
     return fig
+
+
+@app.callback(
+    Output("gpa-mix", "figure"),
+    [
+        Input("region-slug-store", "data"),
+        Input("ay-store", "data"),
+        Input("theme-store", "data"),
+    ],
+)
+def gpa_mix(region_slug, ay_start_year, theme):
+    """Members by their average GPA for the year. Region pages and a CSS's landing page only:
+    on the member home page a small chapter's bands could point to one member's grades."""
+    from thetatauCMT.users.models import UserSemesterGPA
+
+    if not _region_or_css_view(region_slug):
+        return _empty_figure(theme)
+    counts = defaultdict(lambda: dict.fromkeys(GPA_BANDS, 0))
+    for row in (
+        UserSemesterGPA.objects.filter(user__chapter__in=get_scope_chapters(region_slug))
+        .filter(_ay_terms(ay_start_year))
+        .values("user__chapter__name", "user")
+        .annotate(gpa=Avg("gpa"))
+    ):
+        counts[row["user__chapter__name"]][gpa_band(row["gpa"])] += 1
+    if not counts:
+        return _empty_figure(theme, "No GPAs reported for this period")
+    return _mix_chart(
+        counts,
+        GPA_BANDS,
+        GPA_BAND_COLORS,
+        GPA_BANDS[:2],
+        theme,
+        _is_chapter_scope(region_slug),
+        "GPA",
+        "Share of members reporting (%)",
+    )
 
 
 @app.callback(
@@ -1458,7 +1701,7 @@ def service_hours_by_chapter(region_slug, ay_start_year, theme):
     if _is_chapter_scope(region_slug):
         rows = list(
             hours.values("year", "term")
-            .annotate(value=Sum("service_hours"), members=Count("user", distinct=True))
+            .annotate(value=Sum("service_hours"), count=Count("user", distinct=True))
             .order_by("year")
         )
         return _bar_by_term(rows, "Service hours", theme, "{:,.0f}")
@@ -1468,6 +1711,43 @@ def service_hours_by_chapter(region_slug, ay_start_year, theme):
     fig = _bar_by_chapter(rows, "Service hours", theme)
     if rows:
         _add_reference_line(fig, sum(row["count"] for row in rows) / len(rows), "Average chapter {:,.0f}")
+    return fig
+
+
+@app.callback(
+    Output("funds-raised-by-chapter", "figure"),
+    [
+        Input("region-slug-store", "data"),
+        Input("ay-store", "data"),
+        Input("theme-store", "data"),
+    ],
+)
+def funds_raised_by_chapter(region_slug, ay_start_year, theme):
+    """Philanthropy funds raised at events: by term for one chapter; by chapter, against the average chapter, for more."""
+    from thetatauCMT.events.models import Event
+
+    ay_start, ay_end = ay_dates(ay_start_year)
+    events = Event.objects.filter(
+        chapter__in=get_scope_chapters(region_slug),
+        date__gte=ay_start.date(),
+        date__lt=ay_end.date(),
+        raised__gt=0,
+    )
+    if _is_chapter_scope(region_slug):
+        terms = defaultdict(lambda: {"value": 0.0, "count": 0})
+        for day, raised in events.values_list("date", "raised"):
+            bucket = terms[(day.year, "fa" if day.month >= 7 else "sp")]
+            bucket["value"] += float(raised)
+            bucket["count"] += 1
+        rows = [{"year": year, "term": term, **totals} for (year, term), totals in sorted(terms.items())]
+        return _bar_by_term(rows, "Funds raised ($)", theme, "${:,.0f}", count_label="Events")
+    rows = list(events.values("chapter__name", "chapter__region__name").annotate(count=Sum("raised")))
+    for row in rows:
+        row["count"] = float(row["count"])
+    fig = _bar_by_chapter(rows, "Funds raised ($)", theme)
+    if rows:
+        total = sum(row["count"] for row in rows)
+        _add_reference_line(fig, total / len(rows), f"Average chapter ${{:,.0f}}, total ${total:,.0f}")
     return fig
 
 
@@ -1859,6 +2139,34 @@ def member_organization_cloud(region_slug, ay_start_year, theme):
     for row in rows:
         row["Organization"] = row.pop("organization__name")
     return _treemap_from_rows(rows, label_key="Organization", value_key="count", theme=theme, value_label="Members")
+
+
+@app.callback(
+    Output("top-societies", "figure"),
+    [
+        Input("region-slug-store", "data"),
+        Input("ay-store", "data"),
+        Input("theme-store", "data"),
+    ],
+)
+def top_societies(region_slug, ay_start_year, theme):
+    """The professional and technical societies the most members took part in during the academic year."""
+    from thetatauCMT.users.models import UserOrgParticipate
+
+    ay_start, ay_end = ay_dates(ay_start_year)
+    rows = [
+        {"Organization": row["organization__name"], "count": row["count"]}
+        for row in UserOrgParticipate.objects.filter(
+            user__chapter__in=get_scope_chapters(region_slug),
+            organization__isnull=False,
+            type__in=["pro", "tec"],
+            start__lt=ay_end.date(),
+            end__gte=ay_start.date(),
+        )
+        .values("organization__name")
+        .annotate(count=Count("user", distinct=True))
+    ]
+    return _horizontal_bar_top_n(rows, "Organization", "count", "Members", theme, top_n=TOP_SOCIETIES)
 
 
 # ---------------------------------------------------------------------------

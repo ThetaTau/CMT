@@ -60,7 +60,7 @@
         {
           "key": "home-dashboard",
           "name": "Home dashboard",
-          "short_description": "Announcements, the tasks your chapter still owes, and your chapter's numbers, including its class years, GPA and service hours, on one page.",
+          "short_description": "Announcements, the tasks your chapter still owes, and your chapter's numbers, including its class years, membership changes, events and submissions by category, GPA, service hours and funds raised, on one page.",
           "url_name": "home"
         },
         {
@@ -195,7 +195,7 @@
           "key": "css-my-chapters",
           "name": "My Chapters (Chapter Support Specialists)",
           "short_description": "Your assigned chapters side by side, with a dashboard for all of them.",
-          "long_description": "For Chapter Support Specialists, and your Home page: actives, PNMs, overdue tasks, balance, missing officers, and this academic year's transition reports and ballot votes for each chapter you support, with chapters below the minimum size flagged. Below that, the region dashboard limited to those chapters, with year-over-year changes, trends and CMT sign-ins, then What's New.",
+          "long_description": "For Chapter Support Specialists, and your Home page: actives, PNMs, overdue tasks, balance, missing officers, and this academic year's transition reports and ballot votes for each chapter you support, with chapters below the minimum size flagged. Below that, the region dashboard limited to those chapters, with year-over-year changes, trends, the GPA mix and CMT sign-ins, then What's New.",
           "url_name": "support:my_chapters",
           "audience": "officer",
           "roles": ["chapter support specialist"]
@@ -1101,7 +1101,7 @@
         {
           "key": "region-dashboard",
           "name": "Region dashboard",
-          "short_description": "Chapter health across your region: size, overdue tasks, balances, empty officer seats, transition reports, ballot turnout, scores, recruitment and where members work.",
+          "short_description": "Chapter health across your region: size, membership changes, overdue tasks, balances, empty officer seats, transition reports, ballot turnout, scores, GPA mix, funds raised, recruitment, societies and where members work.",
           "url_name": "regions:dashboard",
           "url_kwargs": {"slug": "@region_slug"},
           "audience": "natoff",

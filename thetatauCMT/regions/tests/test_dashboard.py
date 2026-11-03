@@ -713,6 +713,200 @@ def test_service_hours_show_one_chapters_terms_and_the_average_chapter():
 
 
 @pytest.mark.django_db
+def test_funds_raised_show_one_chapters_terms_and_the_average_chapter():
+    from thetatauCMT.events.tests.factories import EventFactory
+    from thetatauCMT.regions.dashboard import funds_raised_by_chapter
+    from thetatauCMT.scores.models import ScoreType
+
+    region = _region("Funds Region")
+    alpha = _chapter(region, "alpha")
+    beta = _chapter(region, "beta")
+    project = ScoreType.objects.get(slug="service-project")
+    for chapter, day, raised in [
+        (alpha, datetime.date(2025, 10, 1), 100),
+        (alpha, datetime.date(2025, 11, 1), 50),
+        (alpha, datetime.date(2026, 3, 1), 25),
+        (alpha, datetime.date(2026, 4, 1), 0),
+        # The next academic year.
+        (alpha, datetime.date(2026, 9, 1), 500),
+        (beta, datetime.date(2026, 2, 1), 75),
+    ]:
+        EventFactory(chapter=chapter, type=project, date=day, raised=Decimal(raised))
+
+    fig = funds_raised_by_chapter(f"chapter_{alpha.slug}", 2025, "light")
+    assert list(fig.data[0].x) == ["Fall 2025", "Spring 2026"]
+    assert list(fig.data[0].y) == [150, 25]
+    assert list(fig.data[0].customdata) == [2, 1]
+
+    fig = funds_raised_by_chapter(region.slug, 2025, "light")
+    assert {name: raised for trace in fig.data for name, raised in zip(trace.x, trace.y)} == {"alpha": 175, "beta": 75}
+    assert fig.layout.shapes[0].y0 == pytest.approx(125)
+    assert fig.layout.annotations[0].text == "Average chapter $125, total $250"
+
+
+@pytest.mark.django_db
+def test_events_and_submissions_by_category_count_each_score_type():
+    from thetatauCMT.events.tests.factories import EventFactory
+    from thetatauCMT.regions import dashboard as d
+    from thetatauCMT.scores.models import ScoreType
+    from thetatauCMT.submissions.tests.factories import SubmissionFactory
+
+    region = _region("Category Region")
+    chapter = _chapter(region)
+    in_year, next_year = datetime.date(2025, 10, 1), datetime.date(2026, 9, 1)
+    for slug, day in [
+        ("brotherhood", in_year),
+        ("brotherhood", in_year + datetime.timedelta(days=1)),
+        ("meetings", in_year),
+        ("meetings", next_year),
+    ]:
+        EventFactory(chapter=chapter, type=ScoreType.objects.get(slug=slug), date=day)
+    for slug, day in [("audit", in_year), ("osm", in_year), ("osm", next_year)]:
+        SubmissionFactory(chapter=chapter, type=ScoreType.objects.get(slug=slug), date=day)
+
+    events = d.events_by_category(region.slug, 2025, "light")
+    assert {trace.name: dict(zip(trace.y, trace.x)) for trace in events.data} == {
+        "Brotherhood": {"Brotherhood activities": 2},
+        "Operate": {"Attendance at meetings": 1},
+    }
+    assert list(events.layout.yaxis.categoryarray) == ["Brotherhood activities", "Attendance at meetings"]
+    submissions = d.submissions_by_category(f"chapter_{chapter.slug}", 2025, "light")
+    assert {trace.name: dict(zip(trace.y, trace.x)) for trace in submissions.data} == {
+        "Operate": {"Financial Audits": 1, "Outstanding Student Member Program": 1},
+    }
+
+
+@pytest.mark.django_db
+def test_membership_changes_count_who_joined_stepped_away_and_left():
+    from viewflow.activation import STATUS
+
+    from thetatauCMT.forms.flows import ResignationFlow, ReturnStudentFlow
+    from thetatauCMT.forms.models import ResignationProcess, ReturnStudent
+    from thetatauCMT.forms.tests.factories import (
+        DepledgeFactory,
+        InitiationFactory,
+        PrematureAlumnusFactory,
+        StatusChangeFactory,
+    )
+    from thetatauCMT.regions import dashboard as d
+    from thetatauCMT.users.models import UserStatusChange
+
+    region = _region("Changes Region")
+    chapter = _chapter(region)
+    in_year, next_year = datetime.date(2025, 10, 1), datetime.date(2026, 9, 1)
+    approved = timezone.make_aware(datetime.datetime(2026, 2, 1))
+
+    UserStatusChange.objects.create(user=_member(chapter), status="pnm", start=in_year, end=datetime.date(2100, 1, 1))
+    InitiationFactory(user=_member(chapter), chapter=chapter, date=in_year)
+    DepledgeFactory(user=_member(chapter), date=in_year)
+    for reason in ("graduate", "coop", "coop", "military", "withdraw", "transfer", "resignedCC"):
+        StatusChangeFactory(user=_member(chapter), reason=reason, date_start=in_year)
+    StatusChangeFactory(user=_member(chapter), reason="coop", date_start=next_year)
+    PrematureAlumnusFactory(user=_member(chapter), approved_exec=True, status=STATUS.DONE, finished=approved)
+    PrematureAlumnusFactory(user=_member(chapter), approved_exec=False, status=STATUS.DONE, finished=approved)
+    resigning = _member(chapter)
+    ResignationProcess.objects.create(
+        flow_class=ResignationFlow,
+        user=resigning,
+        chapter=chapter,
+        officer1=resigning,
+        officer2=resigning,
+        approved_exec=True,
+        finished=approved,
+    )
+    ReturnStudent.objects.create(
+        flow_class=ReturnStudentFlow,
+        user=_member(chapter),
+        reason="Back from co-op",
+        approved_exec=True,
+        finished=approved,
+    )
+
+    fig = d.membership_changes(region.slug, 2025, "light")
+    assert {trace.name: dict(zip(trace.y, trace.x)) for trace in fig.data} == {
+        "Joined or returned": {"New PNMs": 1, "Initiated": 1, "Returned to student status": 1},
+        "Away for a time": {"Co-op or study abroad": 2, "Military deployment": 1},
+        "Left": {
+            "Graduated": 1,
+            "Premature alumni": 1,
+            "Withdrew from school": 1,
+            "Transferred": 1,
+            # A resignation form, and a candidate chapter member's status change.
+            "Resigned": 2,
+            "Depledged": 1,
+        },
+    }
+
+
+@pytest.mark.django_db
+def test_gpa_mix_puts_chapters_with_the_most_members_at_risk_first(natoff_viewer, view_as):
+    from thetatauCMT.regions import dashboard as d
+    from thetatauCMT.users.models import UserSemesterGPA
+
+    region = _region("GPA Mix Region")
+    alpha = _chapter(region, "alpha")
+    beta = _chapter(region, "beta")
+    struggling, strong, steady = _member(alpha), _member(alpha), _member(beta)
+    for user, year, term, gpa in [
+        # Averages 2.2 over the year.
+        (struggling, 2025, "fa", 1.9),
+        (struggling, 2026, "sp", 2.5),
+        (strong, 2025, "fa", 3.8),
+        (steady, 2026, "sp", 3.2),
+        # The next academic year.
+        (steady, 2026, "fa", 1.0),
+    ]:
+        UserSemesterGPA.objects.create(user=user, year=year, term=term, gpa=gpa)
+
+    fig = d.gpa_mix(region.slug, 2025, "light")
+    shares = {trace.name: dict(zip(trace.x, trace.y)) for trace in fig.data}
+    assert list(fig.data[0].x) == ["alpha", "beta"]
+    assert shares["2.0 to 2.49"] == {"alpha": 50.0, "beta": 0.0}
+    assert shares["3.0 to 3.49"] == {"alpha": 0.0, "beta": 100.0}
+    assert shares["3.5 and up"] == {"alpha": 50.0, "beta": 0.0}
+    # Not on the member home page, and nothing for a member who asks for a region.
+    assert len(d.gpa_mix(f"chapter_{alpha.slug}", 2025, "light").data) == 0
+    view_as(_member(alpha, current_status="active"))
+    assert len(d.gpa_mix(region.slug, 2025, "light").data) == 0
+
+
+@pytest.mark.parametrize(
+    "gpa, band",
+    [(1.99, "Below 2.0"), (2.0, "2.0 to 2.49"), (2.49, "2.0 to 2.49"), (3.0, "3.0 to 3.49"), (4.0, "3.5 and up")],
+)
+def test_gpa_band_starts_each_band_at_its_floor(gpa, band):
+    from thetatauCMT.regions.dashboard import gpa_band
+
+    assert gpa_band(gpa) == band
+
+
+@pytest.mark.django_db
+def test_top_societies_rank_professional_and_technical_organizations():
+    from thetatauCMT.regions import dashboard as d
+    from thetatauCMT.users.tests.factories import OrganizationFactory, UserOrgParticipateFactory
+
+    region = _region("Societies Region")
+    chapter = _chapter(region)
+    ieee, swe, honor = (OrganizationFactory(name=name) for name in ("IEEE", "SWE", "Tau Beta Pi"))
+    in_year = {"start": datetime.date(2025, 9, 1), "end": datetime.date(2026, 5, 1)}
+    for organization, kind in [(ieee, "tec"), (ieee, "pro"), (swe, "pro"), (honor, "hon")]:
+        UserOrgParticipateFactory(organization=organization, type=kind, user=_member(chapter), **in_year)
+    # Ended before the academic year began.
+    UserOrgParticipateFactory(
+        organization=swe,
+        type="pro",
+        user=_member(chapter),
+        start=datetime.date(2024, 9, 1),
+        end=datetime.date(2025, 5, 1),
+    )
+
+    fig = d.top_societies(region.slug, 2025, "light")
+    # Largest on top: plotly draws the first bar at the bottom.
+    assert list(fig.data[0].y) == ["SWE", "IEEE"]
+    assert list(fig.data[0].x) == [1, 2]
+
+
+@pytest.mark.django_db
 def test_region_panels_need_a_national_officer_on_a_region_page(natoff_viewer, view_as):
     from thetatauCMT.regions import dashboard as d
 
