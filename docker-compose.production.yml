@@ -45,4 +45,4 @@ services:
       - '0.0.0.0:443:443'
 
   redis:
-    image: docker.io/redis:6@sha256:143f7bfc2358911d6b36138eabfbfffea46273c5d4b5696d90e5cbf23d633cf8
+    image: docker.io/redis:6@sha256:a08354a6199cf1008897c893e1a679e6cf7ee803ee9f34a50b991b8200a0e8dc
