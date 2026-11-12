@@ -1,9 +1,11 @@
 import datetime
+import re
 import uuid
 
 import pytest
 from django.contrib.auth.models import Group
 from django.urls import reverse
+from django.utils.html import escape
 
 from thetatauCMT.tasks.models import Task, TaskChapter, TaskDate
 
@@ -179,6 +181,68 @@ def test_task_detail_view_shows_national_officers_any_chapter(auto_login_user):
     other = _completion_in("beta")
 
     assert client.get(reverse("tasks:detail", kwargs={"pk": other.pk})).status_code == 200
+
+
+def _related_cell(client, completion):
+    """The "Related Submission" cell of the completed task page, whitespace collapsed."""
+    body = client.get(reverse("tasks:detail", kwargs={"pk": completion.pk})).content.decode()
+    match = re.search(r"<th>Related Submission</th>\s*<td>(.*?)</td>", body, re.S)
+    return " ".join(match.group(1).split())
+
+
+def _complete_with(completion, record):
+    completion.submission_object = record
+    completion.save()
+    return record
+
+
+def _gear_article_for(completion):
+    from thetatauCMT.scores.models import ScoreType
+    from thetatauCMT.submissions.models import GearArticle, Submission
+
+    submission = Submission.objects.create(
+        name="Fall service day", type=ScoreType.objects.get(slug="article"), chapter=completion.chapter, file=""
+    )
+    return _complete_with(completion, GearArticle.objects.create(submission=submission, article="<p>Hi</p>"))
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("national_officer", [False, True], ids=["chapter member", "national officer"])
+def test_task_detail_links_a_gear_article_completion_to_the_article(auto_login_user, national_officer):
+    """The completion stores the Gear article, which the page labelled "GearArticle object (N)"
+    and linked by its own pk as a Submission: an unrelated submission or a 404."""
+    completion = _completion_in("alpha")
+    gear = _gear_article_for(completion)
+    client, user = auto_login_user(user=_member_of(completion.chapter))
+    if national_officer:
+        user.groups.add(Group.objects.get_or_create(name="natoff")[0])
+        expected = reverse("submissions:gear_detail", args=[gear.pk])
+    else:
+        expected = reverse("submissions:update", args=[gear.submission.pk])
+
+    assert _related_cell(client, completion) == f'<a href="{expected}">Fall service day</a>'
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("can_open_process", [False, True], ids=["chapter member", "with the flow's view permission"])
+def test_task_detail_shows_a_premature_alumnus_request_instead_of_a_submission(auto_login_user, can_open_process):
+    """Process records (premature alumnus requests, convention credentials) were linked by
+    their pk as a Submission too. Their own page needs the flow's view permission."""
+    from django.contrib.auth.models import Permission
+
+    from thetatauCMT.forms.tests.factories import PrematureAlumnusFactory
+
+    completion = _completion_in("alpha")
+    client, user = auto_login_user(user=_member_of(completion.chapter))
+    request = _complete_with(completion, PrematureAlumnusFactory(user=user, form=""))
+    expected = escape(str(request))
+    if can_open_process:
+        user.user_permissions.add(
+            Permission.objects.get(content_type__app_label="forms", codename="view_prematurealumnus")
+        )
+        expected = f'<a href="{reverse("viewflow:forms:prematurealumnus:detail", args=[request.pk])}">{expected}</a>'
+
+    assert _related_cell(client, completion) == expected
 
 
 # ---------------------------------------------------------------------------

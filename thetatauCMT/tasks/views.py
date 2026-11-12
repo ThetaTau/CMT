@@ -83,6 +83,11 @@ class TaskCompleteView(LoginRequiredMixin, OfficerRequiredMixin, CreateView):
 class TaskDetailView(LoginRequiredMixin, ChapterScopedQuerysetMixin, DetailView):
     model = TaskChapter
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["related"] = self.object.related_record(self.request.user)
+        return context
+
 
 class TaskListView(LoginRequiredMixin, PagedFilteredTableView):
     model = TaskDate

@@ -20,6 +20,7 @@ from core.notifications import GenericEmail
 from core.views import (
     ChapterScopedQuerysetMixin,
     LoginRequiredMixin,
+    NationalOfficerRequiredMixin,
     NatOfficerRequiredMixin,
     PagedFilteredTableView,
     RequestConfig,
@@ -268,12 +269,15 @@ class GearArticleFormView(LoginRequiredMixin, MultiFormsView):
         return factory(**formset_kwargs)
 
 
-class GearArticleDetailView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class GearArticleDetailView(NationalOfficerRequiredMixin, SuccessMessageMixin, UpdateView):
+    # The Gear editor is a National Officer. NatOfficerRequiredMixin would send a refused
+    # member to get_success_url(), the natoff-only list, which refuses them a second time.
     model = GearArticle
     fields = [
         "reviewed",
         "notes",
     ]
+    national_officer_message = "Only National Officers can review Gear articles."
     success_message = "Gear article review was saved."
 
     def get_success_url(self):

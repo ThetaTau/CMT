@@ -1,6 +1,7 @@
 from django import template
 from django.utils.safestring import mark_safe
 
+from core.sanitize import link_images as _link_images
 from core.sanitize import sanitize_html as _sanitize_html
 
 from ..forms import UserAlterForm
@@ -16,6 +17,12 @@ def sanitize_html(value):
     payloads are stripped at render time.
     """
     return mark_safe(_sanitize_html(value or ""))
+
+
+@register.filter(name="sanitize_html_link_images")
+def sanitize_html_link_images(value):
+    """``sanitize_html`` that also makes each image open its full-size file in a new tab."""
+    return mark_safe(_link_images(_sanitize_html(value or "")))
 
 
 @register.simple_tag(takes_context=True)

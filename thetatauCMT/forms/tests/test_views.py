@@ -4193,6 +4193,43 @@ def test_convention_create_view_get_with_officers(auto_login_user):
     assert response.status_code == 200
 
 
+@pytest.mark.django_db
+def test_convention_form_completes_an_open_credentials_task(auto_login_user):
+    """The form completed the Credentials task with its process before viewflow saved it.
+    Django refuses to link an unsaved record, so while the task was open every submission failed."""
+    import datetime
+
+    from django.utils import timezone
+
+    from thetatauCMT.forms.models import Convention
+    from thetatauCMT.tasks.models import Task, TaskChapter, TaskDate
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    chapter = user.current_chapter
+    _create_all_chapter_officers(chapter)
+    task, _ = Task.objects.get_or_create(
+        name="Credentials", owner="regent", defaults={"type": "sub", "description": "Convention delegates"}
+    )
+    TaskDate.objects.create(task=task, school_type="all", date=datetime.date.today() + datetime.timedelta(days=30))
+    delegate, alternate = UserFactory.create_batch(2, chapter=chapter)
+
+    response = client.post(
+        reverse("viewflow:forms:convention:start"),
+        {
+            "meeting_date": datetime.date.today().isoformat(),
+            "delegate": delegate.pk,
+            "alternate": alternate.pk,
+            "_viewflow_activation-started": timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
+        },
+    )
+
+    assert response.status_code == 302
+    completion = TaskChapter.objects.get(task__task=task, chapter=chapter)
+    assert completion.submission_object == Convention.objects.get(chapter=chapter)
+
+
 # ─── ResignationCreateView GET with submitted process (lines 2962-2979) ──────
 
 

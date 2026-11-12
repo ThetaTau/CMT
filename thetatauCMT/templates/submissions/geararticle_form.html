@@ -1,8 +1,17 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
+{% load custom_tags %}
 {% load static %}
 
-{% block title %}Gear Article: {{ object.name }}{% endblock %}
+{% block title %}Gear Article: {{ object.submission.name }}{% endblock %}
+
+{% block css %}
+  {{ block.super }}
+  <style>
+    .gear-article img { max-width: 100%; height: auto; }
+    .gear-picture { width: 16rem; }
+  </style>
+{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -63,37 +72,50 @@
           Attachments
         </th>
         <td>
-          {{ object.submission.file }}
+          {% if object.submission.file %}
+            <a href="{{ object.submission.file.url }}" target="_blank" rel="noopener">
+              <i class="fas fa-paperclip" aria-hidden="true"></i> {{ object.submission.file.name|split:"/"|last }}</a>
+          {% else %}
+            None
+          {% endif %}
         </td>
       </tr>
       <tr>
         <th colspan="2">Article</th>
       </tr>
       <tr>
-        <td colspan="2">{{ object.article | safe }}</td>
+        <td colspan="2" class="gear-article">{{ object.article|sanitize_html_link_images }}</td>
       </tr>
       <tr>
         <th colspan="2">Pictures</th>
       </tr>
       <tr>
         <td colspan="2">
+          <div class="d-flex flex-wrap gap-3 mb-3">
           {% for picture in object.pictures.all %}
             {% if picture.image.name %}
-            <li>
-              <a href="{{ picture.image.url }}" target="_blank">
-                <img src="{{ picture.image.url }}" width="150" height="150"/>
-              </a>
-              <ul>
-                <li>{{ picture.image.name }}</li>
-                <li>{{ picture.description }}</li>
-                <li>
-                  {{ picture.image.width }}px x {{ picture.image.height }}px & {{ picture.image.size | filesizeformat }}
-                </li>
-              </ul>
-            </li>
+            {% with full_size=picture.image.url %}
+              <div class="card gear-picture">
+                <a href="{{ full_size }}" target="_blank" rel="noopener" class="ratio ratio-4x3 d-block bg-body-tertiary"
+                   title="Open the full-size picture">
+                  <img src="{{ full_size }}" alt="{{ picture.description }}" class="object-fit-contain">
+                </a>
+                <div class="card-body small">
+                  <p class="card-text mb-2">{{ picture.description }}</p>
+                  <a href="{{ full_size }}" target="_blank" rel="noopener">
+                    <i class="fas fa-up-right-from-square" aria-hidden="true"></i> Open full size</a>
+                  <div class="text-body-secondary mt-1">
+                    {{ picture.image.name|split:"/"|last }}:
+                    {{ picture.image.width }} x {{ picture.image.height }}px, {{ picture.image.size|filesizeformat }}
+                  </div>
+                </div>
+              </div>
+            {% endwith %}
             {% endif %}
-            <br>
+          {% empty %}
+            No pictures were attached.
           {% endfor %}
+          </div>
         </td>
       </tr>
       <tr>

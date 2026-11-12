@@ -2569,13 +2569,15 @@ class ConventionCreateView(LoginRequiredMixin, CreateProcessView, AssignOfficerF
                 f"Previous Convention Credential Form for {chapter} has been "
                 "cancelled and replaced. Previous signers have been notified.",
             )
+        response = super().form_valid(form)
+        # Only once viewflow has saved the process: the task links to it, and Django refuses to link an unsaved record.
         Task.mark_complete(
             name="Credentials",
             chapter=chapter,
             user=self.request.user,
             obj=form.instance,
         )
-        return super().form_valid(form)
+        return response
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -1,5 +1,6 @@
 import datetime
 from datetime import timedelta
+from typing import NamedTuple
 
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
@@ -11,8 +12,9 @@ from django.utils.html import format_html, mark_safe
 from django.utils.text import slugify
 from django_userforeignkey.models.fields import UserForeignKey
 from email_signals.models import EmailSignalMixin
+from viewflow.models import Process
 
-from core.models import ALL_ROLES_CHOICES, TODAY_END, academic_encompass_start_end_date
+from core.models import ALL_ROLES_CHOICES, TODAY_END, academic_encompass_start_end_date, user_is_national_officer
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.scores.models import ScoreType
 from thetatauCMT.submissions.dedicated_forms import dedicated_form_for
@@ -279,6 +281,13 @@ class TaskDate(models.Model):
         return tasks.all()
 
 
+class RelatedRecord(NamedTuple):
+    """What completed a task, for its "Completed Task Information" page; ``url`` may be None."""
+
+    label: str
+    url: str | None
+
+
 class TaskChapter(models.Model, EmailSignalMixin):
     class Meta:
         unique_together = ("task", "date", "chapter")
@@ -305,6 +314,35 @@ class TaskChapter(models.Model, EmailSignalMixin):
     submission_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, blank=True, null=True)
     submission_id = models.PositiveIntegerField(blank=True, null=True)
     submission_object = GenericForeignKey("submission_type", "submission_id")
+
+    def related_record(self, user):
+        """The record that completed this task, linked to a page ``user`` can open.
+
+        Most tasks store a Submission, but some forms store their own record (a Gear
+        article, a signed RMP, a workflow process such as a premature alumnus request or
+        the convention credentials), and its pk is not a Submission pk.
+        """
+        from thetatauCMT.forms.models import RiskManagement
+        from thetatauCMT.submissions.models import GearArticle, Submission
+
+        record = self.submission_object
+        if record is None:
+            return None
+        if isinstance(record, GearArticle):
+            if user_is_national_officer(user):
+                # The article and its pictures are on the Gear review page, open to National Officers.
+                return RelatedRecord(record.submission.name, reverse("submissions:gear_detail", args=[record.pk]))
+            record = record.submission
+        if isinstance(record, Submission):
+            return RelatedRecord(record.name, reverse("submissions:update", args=[record.pk]))
+        if isinstance(record, RiskManagement):
+            return RelatedRecord(str(record.user), reverse("forms:rmp_complete", args=[record.pk]))
+        # viewflow's process page needs the flow's view permission; others just see the label.
+        if isinstance(record, Process) and record.flow_class.instance.has_view_permission(user):
+            meta = record.flow_class._meta
+            url = reverse(f"viewflow:{meta.app_label}:{meta.flow_label}:detail", args=[record.pk])
+            return RelatedRecord(str(record), url)
+        return RelatedRecord(str(record), None)
 
     @classmethod
     def check_previous(cls, task, chapter, date=None):

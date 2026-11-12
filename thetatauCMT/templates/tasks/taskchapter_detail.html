@@ -35,14 +35,12 @@
     <tr>
       <th>Related Submission</th>
       <td>
-        {% if object.submission_object or 'ballots' in object.task.task.resource %}
-          {% if object.submission_type.name == "risk management" %}
-            <a href="{% url 'forms:rmp_complete' object.submission_id %}">{{ object.submission_object.user }}</a>
-          {% elif 'ballots' in object.task.task.resource %}
-            <a href="{% url object.task.task.resource object.task.task.name|slugify %}">{{ object.task.task.name }}</a>
-          {% else %}
-            <a href="{% url 'submissions:update' object.submission_id %}">{{ object.submission_object }}</a>
-          {% endif %}
+        {% if 'ballots' in object.task.task.resource %}
+          <a href="{% url object.task.task.resource object.task.task.name|slugify %}">{{ object.task.task.name }}</a>
+        {% elif related.url %}
+          <a href="{{ related.url }}">{{ related.label }}</a>
+        {% elif related %}
+          {{ related.label }}
         {% else %}
           Submission not available/applicable
         {% endif %}

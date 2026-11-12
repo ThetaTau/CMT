@@ -9,7 +9,7 @@ These are pure functions, so no database is required.
 """
 
 from core.csv_utils import escape_csv_row, escape_csv_value
-from core.sanitize import sanitize_html
+from core.sanitize import link_images, sanitize_html
 
 
 class TestSanitizeHtml:
@@ -50,6 +50,37 @@ class TestSanitizeHtml:
     def test_empty_and_none(self):
         assert sanitize_html("") == ""
         assert sanitize_html(None) is None
+
+
+class TestLinkImages:
+    def test_wraps_an_image_in_a_link_to_its_full_size_file(self):
+        assert link_images('<p><img src="/media/team.png" alt="Team"></p>') == (
+            '<p><a href="/media/team.png" target="_blank" rel="noopener noreferrer">'
+            '<img src="/media/team.png" alt="Team"></a></p>'
+        )
+
+    def test_leaves_an_image_that_is_already_a_link(self):
+        html = '<a href="https://example.com" rel="noopener noreferrer nofollow"><img src="/media/team.png"></a>'
+        assert link_images(html) == html
+
+    def test_escapes_the_link_address(self):
+        linked = link_images('<img src="/media/team.png?a=1&amp;b=&quot;2&quot;">')
+        assert linked.startswith('<a href="/media/team.png?a=1&amp;b=&quot;2&quot;" ')
+
+    def test_keeps_text_entities_and_other_tags_unchanged(self):
+        html = '<h2>Tom &amp; Jerry</h2><p>&#169; 2026 <strong>bold</strong><br>next</p><img alt="no source">'
+        assert link_images(html) == html
+
+    def test_links_sanitized_ckeditor_output(self):
+        cleaned = sanitize_html('<figure class="image" style="width:40%"><img src="https://x.test/a.png"></figure>')
+        assert link_images(cleaned) == (
+            '<figure class="image"><a href="https://x.test/a.png" target="_blank" rel="noopener noreferrer">'
+            '<img src="https://x.test/a.png"></a></figure>'
+        )
+
+    def test_empty_and_none(self):
+        assert link_images("") == ""
+        assert link_images(None) is None
 
 
 class TestEscapeCsvValue:

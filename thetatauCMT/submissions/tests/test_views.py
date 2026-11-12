@@ -647,3 +647,148 @@ def test_submission_detail_shows_national_officers_any_chapter(auto_login_user):
 
     assert response.status_code == 200
     assert response.context["object"] == submission
+
+
+# ---------------------------------------------------------------------------
+# Gear article review: the attachment, the pictures and the article's own
+# images each open their full-size file
+# ---------------------------------------------------------------------------
+
+
+def _png(width, height):
+    import io
+
+    from PIL import Image
+
+    buffer = io.BytesIO()
+    Image.new("RGB", (width, height), "teal").save(buffer, "PNG")
+    return buffer.getvalue()
+
+
+def _gear_article(chapter, article="<p>Our fall service day.</p>", attachment=True, pictures=()):
+    from django.core.files.base import ContentFile
+
+    from thetatauCMT.scores.models import ScoreType
+    from thetatauCMT.submissions.models import GearArticle, Picture, Submission
+
+    submission = Submission(name="Fall service day", type=ScoreType.objects.get(slug="article"), chapter=chapter)
+    if attachment:
+        submission.file.save("service-day.pdf", ContentFile(b"%PDF-1.4 article"), save=False)
+    submission.save()
+    gear = GearArticle.objects.create(submission=submission, article=article)
+    for description, (width, height) in pictures:
+        picture = Picture(submission=gear, description=description)
+        picture.image.save(f"photo-{width}x{height}.png", ContentFile(_png(width, height)), save=False)
+        picture.save()
+    return gear
+
+
+def _gear_review_page(auto_login_user, **gear_kwargs):
+    client, reviewer = auto_login_user()
+    _make_natoff(reviewer, client)
+    gear = _gear_article(reviewer.chapter, **gear_kwargs)
+    return gear, client.get(reverse("submissions:gear_detail", kwargs={"pk": gear.pk})).content.decode()
+
+
+def _links_to(body, url):
+    """The opening ``<a>`` tags that point at ``url``, each with the text it links."""
+    return re.findall(rf'(<a\b[^>]*\bhref="{re.escape(url)}"[^>]*>)(.*?)</a>', body, re.S)
+
+
+@pytest.mark.django_db
+def test_gear_review_opens_the_attachment(auto_login_user, settings, tmp_path):
+    """The attachment showed its stored path as plain text, so the editor could not open it."""
+    settings.MEDIA_ROOT = str(tmp_path)
+
+    gear, body = _gear_review_page(auto_login_user)
+
+    file = gear.submission.file
+    [(tag, text)] = _links_to(body, file.url)
+    assert 'target="_blank"' in tag
+    assert file.name.rsplit("/", 1)[-1] in text
+    assert "<title>Gear Article: Fall service day</title>" in body
+
+
+@pytest.mark.django_db
+def test_gear_review_without_an_attachment_says_none(auto_login_user, settings, tmp_path):
+    settings.MEDIA_ROOT = str(tmp_path)
+
+    _, body = _gear_review_page(auto_login_user, attachment=False)
+
+    assert re.search(r"<th>\s*Attachments\s*</th>\s*<td>\s*None\s*</td>", body)
+
+
+@pytest.mark.django_db
+def test_gear_review_pictures_open_full_size(auto_login_user, settings, tmp_path):
+    """Only a thumbnail squashed into a 150px square linked to each picture; its name was plain text."""
+    settings.MEDIA_ROOT = str(tmp_path)
+
+    gear, body = _gear_review_page(
+        auto_login_user,
+        pictures=[("Sorting cans, photo by Pat Lee", (1600, 900)), ("Our regent, photo by Sam Ortiz", (800, 1200))],
+    )
+
+    for picture in gear.pictures.all():
+        links = _links_to(body, picture.image.url)
+        assert links and all('target="_blank"' in tag for tag, text in links)
+        assert any("Open full size" in text for tag, text in links), picture.description
+        assert picture.description in body
+    assert 'width="150" height="150"' not in body
+
+
+@pytest.mark.django_db
+def test_gear_review_article_images_open_full_size_and_scripts_are_removed(auto_login_user, settings, tmp_path):
+    """The article rendered with |safe: its images were unlinked and any script in it ran for the reviewer."""
+    settings.MEDIA_ROOT = str(tmp_path)
+
+    _, body = _gear_review_page(
+        auto_login_user,
+        article=(
+            '<p onclick="steal()">Hi</p><figure class="image"><img src="/media/uploads/team.png"></figure>'
+            "<script>steal()</script>"
+        ),
+    )
+
+    [(tag, text)] = _links_to(body, "/media/uploads/team.png")
+    assert 'target="_blank"' in tag
+    assert text.startswith('<img src="/media/uploads/team.png"')
+    assert "steal()" not in body
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("reviewer", ["member of another chapter", "officer of the article's chapter"])
+def test_gear_review_is_for_national_officers_only(auto_login_user, reviewer):
+    """Anyone signed in could open any Gear article review and save it as reviewed with notes."""
+    from django.contrib.messages import get_messages
+
+    home = _chapter("alpha")
+    gear = _gear_article(home, attachment=False)
+    if reviewer == "member of another chapter":
+        client, user = auto_login_user(user=_chapter_member(_chapter("beta"), 9001))
+    else:
+        client, user = auto_login_user(user=_chapter_member(home, 9001))
+        _make_officer(user, client)
+    url = reverse("submissions:gear_detail", kwargs={"pk": gear.pk})
+
+    opened = client.get(url)
+    saved = client.post(url, {"reviewed": "True", "notes": "Looks good"})
+
+    assert [(r.status_code, r.get("Location")) for r in (opened, saved)] == [(302, reverse("home"))] * 2
+    assert "Only National Officers can review Gear articles." in [str(m) for m in get_messages(saved.wsgi_request)]
+    gear.refresh_from_db()
+    assert (gear.reviewed, gear.notes) == (False, None)
+
+
+@pytest.mark.django_db
+def test_national_officer_reviews_a_gear_article(auto_login_user):
+    client, natoff = auto_login_user(user=_chapter_member(_chapter("alpha"), 9001))
+    _make_natoff(natoff, client)
+    gear = _gear_article(_chapter("beta"), attachment=False)
+    url = reverse("submissions:gear_detail", kwargs={"pk": gear.pk})
+
+    assert client.get(url).status_code == 200
+    response = client.post(url, {"reviewed": "True", "notes": "Ready for the spring issue"})
+
+    assert (response.status_code, response["Location"]) == (302, reverse("submissions:gearlist"))
+    gear.refresh_from_db()
+    assert (gear.reviewed, gear.notes) == (True, "Ready for the spring issue")
