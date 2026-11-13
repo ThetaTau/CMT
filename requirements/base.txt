@@ -34,7 +34,7 @@ haversine==2.9.0
 weasyprint==68.0
 openpyxl==3.0.10  # django-report-builder needs save_virtual_workbook which was deprecated
 numpy==2.4.4
-jwcrypto==1.5.6
+jwcrypto==1.5.7
 
 # Django
 # ------------------------------------------------------------------------------
