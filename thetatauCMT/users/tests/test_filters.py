@@ -387,3 +387,144 @@ def test_advisor_list_filter_name_icontains_matches_maiden_name():
     qs = User.objects.filter(pk=user.pk)
     f = AdvisorListFilter(QueryDict("name__icontains=Fitzgerald"), queryset=qs)
     assert user in list(f.qs)
+
+
+# ---------------------------------------------------------------------------
+# Member search boxes (chapter roster + Search all Members)
+# ---------------------------------------------------------------------------
+
+
+def _search(params, queryset):
+    from django.http import QueryDict
+
+    from thetatauCMT.users.filters import UserSearchFilter
+
+    query = QueryDict(mutable=True)
+    for key, value in params.items():
+        query.setlist(key, value if isinstance(value, list) else [value])
+    return UserSearchFilter(query, queryset=queryset)
+
+
+@pytest.mark.django_db
+def test_name_box_needs_every_word_in_one_of_the_members_names():
+    """A member who goes by his middle name is found by first + last name, and by maiden name."""
+    from thetatauCMT.users.models import User
+
+    names = dict(middle_name="Quill", suffix="", nickname="Skip", maiden_name="")
+    henry = UserFactory.create(
+        first_name="Kevin", preferred_name="Henry", last_name="Smithers", **{**names, "maiden_name": "Oldcastle"}
+    )
+    other = UserFactory.create(first_name="Kevin", preferred_name=None, last_name="Brown", name="Kevin Brown", **names)
+    qs = User.objects.filter(pk__in=[henry.pk, other.pk])
+
+    assert henry.name == "Henry Smithers"
+    assert list(_search({"name": "kevin smithers"}, qs).qs) == [henry]
+    assert list(_search({"name": "oldcastle"}, qs).qs) == [henry]
+    assert set(_search({"name": "kev"}, qs).qs) == {henry, other}
+    assert list(_search({"name": "kevin jones"}, qs).qs) == []
+
+
+@pytest.mark.django_db
+def test_initiation_boxes_follow_the_semester_boundaries():
+    """Spring runs January to June and Fall July to December; only semesters with initiations are offered."""
+    import datetime
+
+    from thetatauCMT.forms.tests.factories import InitiationFactory
+    from thetatauCMT.users.models import User
+
+    fall, spring, never = UserFactory.create_batch(3)
+    InitiationFactory.create(user=fall, date=datetime.date(2023, 12, 31))
+    InitiationFactory.create(user=spring, date=datetime.date(2024, 1, 1))
+    qs = User.objects.filter(pk__in=[fall.pk, spring.pk, never.pk])
+
+    semesters = _search({}, qs).form.fields["initiation_semester"].choices
+    assert list(semesters) == [("", "Any semester"), ("sp-2024", "Spring 2024"), ("fa-2023", "Fall 2023")]
+    assert list(_search({"initiation_semester": "fa-2023"}, qs).qs) == [fall]
+    assert list(_search({"initiation_semester": "sp-2024"}, qs).qs) == [spring]
+    on_new_years_eve = {"initiation_date__gte": "2023-12-31", "initiation_date__lte": "2023-12-31"}
+    assert list(_search(on_new_years_eve, qs).qs) == [fall]
+
+
+@pytest.mark.django_db
+def test_status_box_widens_each_status_to_its_group():
+    """Alumni also covers deceased and candidate chapter alumni, as on the roster."""
+    from thetatauCMT.users.models import User
+
+    alumni = [UserFactory.create(current_status=status) for status in ("alumni", "alumniCC", "deceased")]
+    active = UserFactory.create(current_status="active")
+    qs = User.objects.filter(pk__in=[member.pk for member in [*alumni, active]])
+
+    assert set(_search({"current_status": "alumni"}, qs).qs) == set(alumni)
+
+
+@pytest.mark.django_db
+def test_zip_code_box_uses_the_distance_box():
+    """Zip code finds members with an address within the distance (miles) of it."""
+    from address.models import Address, Country, Locality, State
+
+    from thetatauCMT.users.models import User
+
+    country, _ = Country.objects.get_or_create(name="Testland", code="TL")
+    state = State.objects.create(name="Test State", code="TS", country=country)
+    town = Locality.objects.create(name="Testville", postal_code="00042", state=state)
+    uptown = Locality.objects.create(name="Uptown", postal_code="00043", state=state)
+    home = Address.objects.create(raw="1 Main St", locality=town, latitude=40.0, longitude=-100.0)
+    # About 14 miles north of the 00042 zip code.
+    nearby = Address.objects.create(raw="2 Main St", locality=uptown, latitude=40.2, longitude=-100.0)
+    local = UserFactory.create(address=home)
+    commuter = UserFactory.create(address=nearby)
+    qs = User.objects.filter(pk__in=[local.pk, commuter.pk])
+
+    assert list(_search({"zip": "00042", "dist": "5"}, qs).qs) == [local]
+    assert set(_search({"zip": "00042", "dist": "30"}, qs).qs) == {local, commuter}
+
+
+@pytest.mark.django_db
+def test_phone_box_compares_digits_only():
+    """Typed and stored numbers are compared without their spaces, dashes, dots and brackets."""
+    from thetatauCMT.users.models import User
+
+    mobile = UserFactory.create(phone_number="+15124721904")
+    legacy = UserFactory.create(phone_number="512.555.0100")
+    qs = User.objects.filter(pk__in=[mobile.pk, legacy.pk])
+
+    assert list(_search({"phone": "(512) 472-1904"}, qs).qs) == [mobile]
+    assert list(_search({"phone": "555 0100"}, qs).qs) == [legacy]
+    assert set(_search({"phone": "512"}, qs).qs) == {mobile, legacy}
+    assert list(_search({"phone": "ext"}, qs).qs) == []
+
+
+@pytest.mark.django_db
+def test_address_box_needs_every_word_somewhere_in_the_address():
+    """Words can come from the street, city, state name or code, or zip code, or a typed-in address."""
+    from address.models import Address, Country, Locality, State
+
+    from thetatauCMT.users.models import User
+
+    country, _ = Country.objects.get_or_create(name="Testland", code="TL")
+    state = State.objects.create(name="Lone Star Test", code="TXT", country=country)
+    town = Locality.objects.create(name="Austintown", postal_code="78701", state=state)
+    parsed = Address.objects.create(raw="221 Baker Street", street_number="221", route="Baker Street", locality=town)
+    texan = UserFactory.create(address=parsed)
+    typed = UserFactory.create(address=Address.objects.create(raw="17 Main St\nDenverville, CO 80202"))
+    qs = User.objects.filter(pk__in=[texan.pk, typed.pk])
+
+    assert list(_search({"address": "baker austintown"}, qs).qs) == [texan]
+    assert list(_search({"address": "txt 78701"}, qs).qs) == [texan]
+    assert list(_search({"address": "main denverville"}, qs).qs) == [typed]
+    assert list(_search({"address": "baker denverville"}, qs).qs) == []
+
+
+@pytest.mark.django_db
+def test_current_roles_box_matches_any_role_picked():
+    """Picking several roles finds members holding any one of them."""
+    from thetatauCMT.users.models import User
+
+    regent = UserFactory.create(current_roles=["regent"])
+    treasurer = UserFactory.create(current_roles=["scribe", "treasurer"])
+    director = UserFactory.create(current_roles=["regional director"])
+    member = UserFactory.create(current_roles=[])
+    qs = User.objects.filter(pk__in=[regent.pk, treasurer.pk, director.pk, member.pk])
+
+    assert set(_search({"current_roles": ["regent", "treasurer"]}, qs).qs) == {regent, treasurer}
+    assert list(_search({"current_roles": ["regional director"]}, qs).qs) == [director]

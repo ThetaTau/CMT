@@ -1,15 +1,28 @@
 {% extends "base.html" %}
 {% load querystring from django_tables2 %}
 {% load django_bootstrap5 %}
-{% load crispy_forms_tags %}
+{% load filter_tags %}
 {% load static i18n %}
 {% block title %}Search Members{% endblock %}
 
 {% block content %}
   <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
     <h1 class="page-title mb-0">Search all Members</h1>
+    <div class="page-actions d-flex flex-wrap align-items-center gap-2 ms-auto">
+      {# Download CSV: re-submit the current search querystring so the export matches what is on screen. #}
+      <form action="" method="GET" class="d-inline m-0">
+        {% for key, values in request.GET.lists %}{% if key != "csv" and key != "page" %}{% for v in values %}<input type="hidden" name="{{ key }}" value="{{ v }}">{% endfor %}{% endif %}{% endfor %}
+        <button type="submit" name="csv" value="Download CSV"
+                class="btn btn-outline-secondary"
+                data-bs-toggle="tooltip"
+                title="Download the members matching your search as a CSV spreadsheet.">
+          <i class="fa fa-download"></i> Download CSV
+        </button>
+      </form>
+    </div>
   </div>
-  <p class="text-muted">Search for member by name, badge number, email, and/or chapter with any combination. Partial/Full matches. For example name and chapter.</p>
+  <p class="text-muted">Fill in any of the boxes below. Members must match every box you fill in; empty boxes are ignored.</p>
+  {% collapsible_filter filter label="Search Members" collapse_id="memberSearchFilter" open_when_inactive=True %}
 {% if table.page %}
   <div class="table-container">
 {% endif %}
@@ -19,62 +32,6 @@
         <table class="table table-hover table-bordered table-striped"{% if table.attrs %} {{ table.attrs.as_html }}{% endif %}>
             {% block table.thead %}
             <thead>
-
-                <tr>
-                    <th colspan="12">
-                      {% with q=request.GET.q zip=request.GET.zip dist=request.GET.dist %}
-                      <div class="filter-toolbar d-flex flex-wrap align-items-center gap-2 mb-2">
-                        <button class="btn btn-sm btn-outline-primary"
-                                type="button"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#memberSearchFilter"
-                                aria-expanded="false"
-                                aria-controls="memberSearchFilter"
-                                title="Show/Hide Search">
-                          <i class="fas fa-search"></i>
-                          <span class="ms-1">Search Members</span>
-                          {% if q or zip or dist %}<span class="badge bg-primary ms-1">active</span>{% endif %}
-                          <i class="fas fa-caret-down ms-1"></i>
-                        </button>
-                        {% if q or zip or dist %}
-                          <a href="{{ request.path }}" class="btn btn-sm btn-outline-secondary" title="Clear all filters">
-                            <i class="fas fa-eraser"></i> Clear Filter
-                          </a>
-                          <div class="filter-summary d-flex flex-wrap align-items-center gap-1">
-                            <span class="text-muted small me-1">Filtered by:</span>
-                            {% if q %}<span class="filter-chip"><span class="filter-chip-label">Query:</span> <span class="filter-chip-value">{{ q }}</span></span>{% endif %}
-                            {% if zip %}<span class="filter-chip"><span class="filter-chip-label">Zip:</span> <span class="filter-chip-value">{{ zip }}</span></span>{% endif %}
-                            {% if dist %}<span class="filter-chip"><span class="filter-chip-label">Distance:</span> <span class="filter-chip-value">{{ dist }}</span></span>{% endif %}
-                          </div>
-                        {% endif %}
-                      </div>
-                      <div class="collapse mb-2" id="memberSearchFilter">
-                        <div class="card card-body bg-body-tertiary text-body p-3 filter-panel">
-                          <form method="get" class="filter-form d-flex flex-wrap align-items-end gap-2">
-                            <div class="form-group">
-                              <label for="member-search-q" class="form-label">Name / Badge / Email / Chapter</label>
-                              <input id="member-search-q" name="q" value="{{ q|default:'' }}" class="form-control">
-                            </div>
-                            <div class="form-group">
-                              <label for="member-search-zip" class="form-label">Zip code</label>
-                              <input id="member-search-zip" name="zip" value="{{ zip|default:'' }}" maxlength="5" size="6" class="form-control">
-                            </div>
-                            <div class="form-group">
-                              <label for="member-search-dist" class="form-label">Distance (mi)</label>
-                              <input id="member-search-dist" name="dist" value="{{ dist|default:'' }}" maxlength="3" size="4" class="form-control">
-                            </div>
-                            <button type="submit" class="btn btn-primary">
-                              <i class="fas fa-search"></i> Search
-                            </button>
-                            <button type="submit" name="csv" value="Download CSV" class="btn btn-outline-primary">
-                              <i class="fas fa-file-csv"></i> Download CSV
-                            </button>
-                          </form>
-                        </div>
-                      </div>
-                      {% endwith %}
-                    </th>
-                </tr>
               <tr>
                 {% for column in table.columns %}
                     {% if column.orderable %}
@@ -133,3 +90,12 @@
   </div>
 {% endif %}
 {% endblock content %}
+{% block javascript %}
+{{ block.super }}
+  <script type="text/javascript">
+    // Bootstrap 5 tooltips are opt-in; enable the Download CSV hint, as on the chapter roster.
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+      new bootstrap.Tooltip(el);
+    });
+  </script>
+{% endblock %}

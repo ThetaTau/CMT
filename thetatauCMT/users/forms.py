@@ -1,9 +1,9 @@
 import logging
 
 from allauth.account.forms import LoginForm
-from crispy_forms.bootstrap import Field, FormActions, InlineField, StrictButton
+from crispy_forms.bootstrap import Field, FormActions, InlineCheckboxes, InlineField, StrictButton
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Column, Fieldset, Layout, Row, Submit
+from crispy_forms.layout import Column, Div, Fieldset, Layout, Row, Submit
 from dal import autocomplete, forward
 from django import forms
 from django.conf import settings
@@ -56,6 +56,8 @@ class CaptchaLoginForm(LoginForm):
 
 
 class UserListFormHelper(FormHelper):
+    """Member filter on the GPA and service hours pages."""
+
     form_method = "GET"
     form_id = "user-search-form"
     form_class = "form-inline"
@@ -66,18 +68,12 @@ class UserListFormHelper(FormHelper):
     help_text_inline = False
     html5_required = True
 
-    def __init__(self, form=None, rmp_complete=False, search_field="name__icontains"):
-        extra = []
-        if rmp_complete:
-            extra = [
-                Field("rmp_complete"),
-            ]
+    def __init__(self, form=None):
         self.layout = Layout(
             Fieldset(
                 '<i class="fas fa-search"></i> Filter Members',
                 Row(
-                    InlineField(search_field),
-                    *extra,
+                    InlineField("name__icontains"),
                     InlineField("major"),
                     InlineField("graduation_year__icontains"),
                     InlineField("graduation_year__gte"),
@@ -97,6 +93,95 @@ class UserListFormHelper(FormHelper):
                     InlineField("current_status"),
                 ),
             ),
+        )
+        super().__init__(form=form)
+
+
+def member_search_layout(member_fields, extra_sections=(), submit_label="Filter"):
+    """Quick search on top, then sections of labelled boxes laid out as an even grid (``.filter-grid``)."""
+    return Layout(
+        Div(Field("q", wrapper_class="filter-grid-wide"), css_class="filter-grid"),
+        Fieldset(
+            '<i class="fa-solid fa-user"></i> Member Details',
+            Div(
+                *member_fields,
+                InlineCheckboxes("current_status", wrapper_class="filter-grid-wide"),
+                css_class="filter-grid",
+            ),
+        ),
+        *extra_sections,
+        Fieldset(
+            '<i class="fa-solid fa-graduation-cap"></i> Graduation &amp; Initiation',
+            Div(
+                "graduation_year__icontains",
+                "graduation_year__gte",
+                "graduation_year__lte",
+                "initiation_semester",
+                "initiation_date__gte",
+                "initiation_date__lte",
+                css_class="filter-grid",
+            ),
+        ),
+        Div(
+            StrictButton(f'<i class="fa fa-search"></i> {submit_label}', type="submit", css_class="btn-primary"),
+            Submit("cancel", "Clear", css_class="btn-primary"),
+            css_class="form-actions",
+        ),
+    )
+
+
+class MemberSearchFormHelper(FormHelper):
+    # The collapsible_filter partial wraps the fields in its own <form>; GET keeps the CSRF token out of the URL.
+    form_tag = False
+    form_method = "GET"
+    form_show_errors = True
+    help_text_inline = False
+
+
+class UserRosterFormHelper(MemberSearchFormHelper):
+    """The chapter roster's filter (``UserListFilter``)."""
+
+    def __init__(self, form=None):
+        self.layout = member_search_layout(
+            member_fields=(
+                "name",
+                "email",
+                "badge_number",
+                "badge_number__gte",
+                "badge_number__lte",
+                "major",
+                "rmp_complete",
+            ),
+        )
+        super().__init__(form=form)
+
+
+class UserSearchFormHelper(MemberSearchFormHelper):
+    """Search all Members (``UserSearchFilter``)."""
+
+    def __init__(self, form=None):
+        self.layout = member_search_layout(
+            member_fields=(
+                "name",
+                "email",
+                "phone",
+                "badge_number",
+                "badge_number__gte",
+                "badge_number__lte",
+                "major",
+                "current_roles",
+            ),
+            extra_sections=(
+                Fieldset(
+                    '<i class="fa-solid fa-building-columns"></i> Chapter &amp; School',
+                    Div("chapter", "school", "region", css_class="filter-grid"),
+                ),
+                Fieldset(
+                    '<i class="fa-solid fa-location-dot"></i> Address',
+                    Div("address", "zip", "dist", css_class="filter-grid"),
+                ),
+            ),
+            submit_label="Search",
         )
         super().__init__(form=form)
 

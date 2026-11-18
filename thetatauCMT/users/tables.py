@@ -80,7 +80,8 @@ class UserTable(CMTTable):
         if extra_info:
             extra_columns.extend(
                 [
-                    ("address", tables.Column("Address")),
+                    # Only the locality (city, state, zip code) of the address, not the street.
+                    ("address", tables.Column("City, State & Zip")),
                     ("initiation", tables.Column("Initiation")),
                 ]
             )

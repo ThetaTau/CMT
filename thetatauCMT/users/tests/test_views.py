@@ -1682,6 +1682,103 @@ def test_roster_search_only_covers_the_viewers_chapter(auto_login_user, user_fac
 
 
 @pytest.mark.django_db
+def test_roster_filters_by_initiation_semester_and_date(auto_login_user, user_factory):
+    """The roster's initiation boxes only offer, and only match, the viewer's own chapter."""
+    import datetime
+
+    from thetatauCMT.chapters.models import GREEK_ABR
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+    from thetatauCMT.forms.tests.factories import InitiationFactory
+
+    client, user = auto_login_user()
+    other_chapter = ChapterFactory(name=next(n for n in GREEK_ABR.values() if n != user.chapter.name))
+    fall, spring = user_factory.create_batch(2, chapter=user.chapter)
+    InitiationFactory.create(user=fall, date=datetime.date(2023, 12, 31))
+    InitiationFactory.create(user=spring, date=datetime.date(2024, 1, 1))
+    InitiationFactory.create(user=user_factory.create(chapter=other_chapter), date=datetime.date(2020, 3, 1))
+    url = reverse("users:list")
+
+    response = client.get(url, {"initiation_semester": "fa-2023"})
+    assert list(response.context["object_list"]) == [fall]
+    semesters = response.context["filter"].form.fields["initiation_semester"].choices
+    assert [value for value, label in semesters] == ["", "sp-2024", "fa-2023"]
+    response = client.get(url, {"initiation_date__gte": "2024-01-01"})
+    assert list(response.context["object_list"]) == [spring]
+
+
+@pytest.mark.django_db
+def test_member_search_matches_every_box_filled_in(auto_login_user, user_factory):
+    """Search all Members: each box is its own condition, and a member has to match all of them."""
+    from thetatauCMT.chapters.models import GREEK_ABR, Chapter
+    from thetatauCMT.chapters.tests.factories import ChapterFactory
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    names = [name for name in GREEK_ABR.values() if name != user.chapter.name]
+    closed, other = ChapterFactory(name=names[0]), ChapterFactory(name=names[1])
+    # A closed chapter's alumni can still be found by chapter.
+    Chapter.objects.filter(pk=closed.pk).update(active=False)
+    match = dict(chapter=closed, graduation_year=2026, email_school="pat@state.edu", current_status="alumni")
+    target = user_factory.create(**match)
+    user_factory.create(**{**match, "graduation_year": 2027})
+    user_factory.create(**{**match, "chapter": other})
+    user_factory.create(**{**match, "email_school": "pat@college.edu"})
+    user_factory.create(**{**match, "current_status": "active"})
+
+    response = client.get(
+        reverse("users:search"),
+        {
+            "chapter": closed.slug,
+            "graduation_year__icontains": "2026",
+            "email": "state.edu",
+            "current_status": "alumni",
+        },
+    )
+
+    assert list(response.context["object_list"]) == [target]
+
+
+@pytest.mark.django_db
+def test_member_search_lists_nobody_until_a_box_is_filled_in(auto_login_user):
+    """The boxes start open with the quick search explained; a distance alone or Clear lists nobody."""
+    from thetatauCMT.users.filters import QUICK_SEARCH_HELP
+
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    url = reverse("users:search")
+
+    for params in ({}, {"dist": "25"}, {"cancel": "Clear", "name": user.last_name}):
+        assert list(client.get(url, params).context["object_list"]) == [], params
+    content = client.get(url).content.decode()
+    assert 'class="collapse mb-2 show" id="memberSearchFilter"' in content
+    assert QUICK_SEARCH_HELP in content
+    search_form = content.split('id="memberSearchFilter"', 1)[1].split("</form>", 1)[0]
+    assert "csrfmiddlewaretoken" not in search_form
+
+    response = client.get(url, {"name": user.last_name})
+    assert user in response.context["object_list"]
+    assert 'class="collapse mb-2" id="memberSearchFilter"' in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_member_search_csv_download_needs_a_search(auto_login_user):
+    """Download CSV is always in the page header; it explains, rather than exporting nobody."""
+    client, user = auto_login_user()
+    _make_natoff(user, client)
+    url = reverse("users:search")
+
+    content = client.get(url, {"csv": "Download CSV"}).content.decode()
+    assert 'name="csv" value="Download CSV"' in content
+    assert "Fill in at least one search box, then download." in content
+    content = client.get(url, {"csv": "Download CSV", "name": "Nobody Hasthisname"}).content.decode()
+    assert "No members match your search." in content
+
+    response = client.get(url, {"csv": "Download CSV", "name": user.last_name})
+    assert response["Content-Type"] == "text/csv"
+    assert user.name in response.content.decode()
+
+
+@pytest.mark.django_db
 def test_user_profile_shows_last_name_and_maiden_name(auto_login_user, user_factory):
     """The profile page shows both names when a maiden name is on file."""
     client, user = auto_login_user()

@@ -27,7 +27,6 @@ from django.views.generic import CreateView, DetailView, FormView, RedirectView,
 from extra_views import FormSetView
 from watson import search as watson
 
-from core.address import isinradius
 from core.forms import MultiFormsView
 from core.models import (
     BIENNIUM_YEARS,
@@ -54,7 +53,7 @@ from thetatauCMT.support.forms import CSSInfoForm
 from thetatauCMT.support.services import VIEW_ONLY_MESSAGE as CSS_VIEW_ONLY_MESSAGE
 from thetatauCMT.support.services import css_chapters, wants_css_landing
 
-from .filters import UserListFilter, UserListFilterBase, UserOrgListFilter
+from .filters import UserListFilter, UserListFilterBase, UserOrgListFilter, UserSearchFilter
 from .forms import (
     CaptchaLoginForm,
     EmailPreferencesForm,
@@ -67,6 +66,8 @@ from .forms import (
     UserLookupSelectForm,
     UserOrgChapterForm,
     UserOrgListFormHelper,
+    UserRosterFormHelper,
+    UserSearchFormHelper,
     UserServiceForm,
     UserUpdateForm,
 )
@@ -744,11 +745,19 @@ class UserSearchView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredT
     context_object_name = "user"
     ordering = ["-badge_number"]
     table_class = UserTable
+    filter_class = UserSearchFilter
+    formhelper_class = UserSearchFormHelper
     template_name = "users/user_search.html"
 
     def get(self, request, *args, **kwargs):
         response = super().get(request, *args, **kwargs)
         if request.GET.get("csv", "False").lower() == "download csv":
+            if not self.searched:
+                messages.add_message(request, messages.ERROR, "Fill in at least one search box, then download.")
+                return response
+            if not self.object_list.exists():
+                messages.add_message(request, messages.ERROR, "No members match your search. Change it, then download.")
+                return response
             response = HttpResponse(content_type="text/csv")
             context = self.get_context_data()
             time_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -760,19 +769,17 @@ class UserSearchView(LoginRequiredMixin, NatOfficerRequiredMixin, PagedFilteredT
         return response
 
     def get_queryset(self):
-        queryset = User.objects.none()
-        q = self.request.GET.get("q", "")
-        zip = self.request.GET.get("zip", "")
-        if q:
-            queryset = watson.filter(User, q)
-        if zip:
-            distance = self.request.GET.get("dist", "1")
-            addressess = isinradius(zip, distance)
-            user_pks = [user.pk for address in addressess for user in address.user_set.all()]
-            if not queryset:
-                queryset = User.objects
-            queryset = queryset.filter(pk__in=user_pks)
-        return queryset
+        data = QueryDict() if self.request.GET.get("cancel") else self.request.GET
+        members = User.objects.select_related(
+            "chapter__region", "major", "initiation", "address__locality__state__country"
+        )
+        self.filter = self.filter_class(data, queryset=members, request=self.request)
+        self.filter.form.helper = self.formhelper_class()
+        self.searched = self.filter.has_conditions()
+        if not self.searched:
+            # An empty search lists nobody rather than every member of the fraternity.
+            return User.objects.none()
+        return self.filter.qs
 
     def get_table_kwargs(self):
         return {
@@ -829,7 +836,7 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
     ordering = ["-badge_number"]
     table_class = UserTable
     filter_class = UserListFilter
-    formhelper_class = UserListFormHelper
+    formhelper_class = UserRosterFormHelper
     template_name = "users/user_list.html"
 
     def get(self, request, *args, **kwargs):
@@ -932,7 +939,7 @@ class UserListView(LoginRequiredMixin, PagedFilteredTableView):
                 )
         qs = annotate_rmp_status(qs)
         self.filter = self.filter_class(request_get, queryset=qs, request=self.request)
-        self.filter.form.helper = self.formhelper_class(rmp_complete=True, search_field="q")
+        self.filter.form.helper = self.formhelper_class()
         return self.filter.qs
 
     def get_context_data(self, **kwargs):

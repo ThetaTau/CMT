@@ -537,6 +537,33 @@ select.form-control[multiple], select.form-control[size] {
 .filter-panel .row > [class*="col"] .form-actions {
   margin-top: 0;
 }
+/* Member search (chapter roster, Search all Members): one labelled box per condition in an even grid. */
+.filter-panel .filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  column-gap: 1rem;
+}
+.filter-panel .filter-grid > .filter-grid-wide {
+  grid-column: 1 / -1;
+}
+/* Select2 sizes itself when it starts, which can be inside the collapsed panel, and DAL gives it a 20em minimum. */
+.filter-panel .filter-grid .select2-container {
+  width: 100% !important;
+  min-width: 0;
+}
+/* A field's own legend (e.g. the status checkboxes) inside a filter section reads as a field label, not a section title.
+   The font size needs !important to beat the fs-6 utility crispy puts on that legend. */
+.filter-panel .filter-form fieldset fieldset > legend {
+  font-size: 0.85rem !important;
+  font-weight: 500;
+  color: var(--bs-secondary-color, #495057);
+  border-bottom: 0;
+  padding-bottom: 0;
+  margin-bottom: 0.15rem;
+}
+[data-bs-theme="dark"] .filter-panel .filter-form fieldset fieldset > legend {
+  color: var(--bs-body-color, #dee2e6);
+}
 
 /* Active-filter summary chips shown next to the toolbar buttons */
 .filter-chip {

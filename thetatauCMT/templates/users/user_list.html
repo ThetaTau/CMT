@@ -33,6 +33,7 @@
   {% endif %}
 </div>
 {#  {% render_table table %}#}
+{% collapsible_filter filter label="Filter Members" collapse_id="userFilter" %}
 {% if table.page %}
   <div class="table-container">
 {% endif %}
@@ -45,12 +46,6 @@
         <table class="table table-hover table-bordered table-striped"{% if table.attrs %} {{ table.attrs.as_html }}{% endif %}>
             {% block table.thead %}
             <thead>
-                <tr>
-                    <th colspan="8">
-                        {% collapsible_filter filter label="Filter Members" collapse_id="userFilter" %}
-                    </th>
-                </tr>
-
               <tr>
                 {% for column in table.columns %}
                     {% if column.orderable %}

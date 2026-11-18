@@ -238,7 +238,7 @@
           "key": "chapter-roster",
           "name": "Chapter roster",
           "short_description": "Every active, PNM and alumnus member of your chapter, with status and contact details.",
-          "long_description": "Search the roster by name, nickname, maiden name, badge number or email, or just the start of one. The search only looks inside your own chapter; National Officers find members in other chapters with Member search (all chapters).",
+          "long_description": "Filter Members has a separate box for each condition: name, email, badge number or a range of them, major, RMP status, member status, graduation year, initiation semester and initiation dates. Fill in as many as you need; a member has to match all of them. Quick search looks through names (including nickname and maiden name), badge number, email and school email at once, matching the start of each word. Everything stays inside your own chapter; National Officers find members in other chapters with Member search (all chapters).",
           "url_name": "users:list",
           "roles": ["scribe"]
         },
@@ -308,6 +308,7 @@
           "key": "member-search-all",
           "name": "Member search (all chapters)",
           "short_description": "Find any member in the fraternity, across every chapter.",
+          "long_description": "A separate box for each condition: name, email, phone, badge number, major, current roles, member status, chapter (closed chapters too), school, region, address, distance from a zip code, graduation year, and initiation semester or dates. Fill in as many as you need; a member has to match all of them. Quick search looks through names (including nickname and maiden name), badge number, email, school email and chapter at once. Download the results as a CSV.",
           "url_name": "users:search",
           "audience": "natoff"
         }

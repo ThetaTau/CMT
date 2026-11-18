@@ -93,7 +93,9 @@ def _filter_has_active_values(filterset):
 
 
 @register.inclusion_tag("_partials/collapsible_filter.html", takes_context=True)
-def collapsible_filter(context, filterset, label="Filter", collapse_id="filterCollapse", reset_url=None):
+def collapsible_filter(
+    context, filterset, label="Filter", collapse_id="filterCollapse", reset_url=None, open_when_inactive=False
+):
     request = context.get("request")
     if reset_url is None:
         # Default: reload the page with no query string. Callers whose list has a
@@ -101,11 +103,14 @@ def collapsible_filter(context, filterset, label="Filter", collapse_id="filterCo
         # pass an explicit reset_url (like "?cancel=1") so "Clear Filter" truly
         # clears every filter, including that default.
         reset_url = request.path if request is not None else ""
+    active = _filter_has_active_values(filterset)
     return {
         "filterset": filterset,
         "label": label,
         "collapse_id": collapse_id,
-        "active": _filter_has_active_values(filterset),
+        "active": active,
+        # Search pages, which list nothing until something is entered, start with the boxes showing.
+        "expanded": open_when_inactive and not active,
         "summary": _active_summary(filterset),
         "reset_url": reset_url,
     }
