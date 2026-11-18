@@ -3,13 +3,16 @@
 Exercises OfficerMiddleware and RMPSignMiddleware via RequestFactory.
 Canary: if Django 4.2 breaks MiddlewareMixin.__call__, process_request
 injection, or the request-attribute contract, these tests fail immediately.
+Also covers what Rollbar's middleware reports under ``settings.ROLLBAR``.
 """
 
 import pytest
+import rollbar
 from dash.exceptions import CallbackException
 from django.contrib.auth.models import AnonymousUser, Group
 from django.contrib.messages.storage.cookie import CookieStorage
-from django.http import HttpResponse
+from django.core.exceptions import PermissionDenied
+from django.http import Http404, HttpResponse
 from django.test import RequestFactory
 from django.utils import timezone
 
@@ -286,3 +289,41 @@ def test_plotly_stale_middleware_does_not_swallow_other_exceptions():
 
     with pytest.raises(KeyError):
         PlotlyDashStaleCallbackMiddleware(get_response=_get_response).process_view(request, _view, [], {})
+
+
+# ---------------------------------------------------------------------------
+# Rollbar (rollbar's RollbarNotifierMiddleware, configured by settings.ROLLBAR)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def rollbar_middleware(monkeypatch, settings):
+    """Rollbar's middleware as production builds it, recording the level of each report it sends.
+
+    Without a token it switches itself off. Building it changes rollbar's module state, so that is
+    patched here and restored afterwards.
+    """
+    from rollbar.contrib.django import middleware
+
+    settings.ROLLBAR = {**settings.ROLLBAR, "access_token": "test-token", "patch_debugview": False}
+    monkeypatch.setattr(rollbar, "SETTINGS", {**rollbar.SETTINGS, "access_token": "test-token"})
+    monkeypatch.setattr(rollbar, "BASE_DATA_HOOK", None)
+    monkeypatch.setattr(middleware.log, "handlers", [])
+    sent = []
+    monkeypatch.setattr(rollbar, "send_payload", lambda payload, access_token: sent.append(payload["data"]["level"]))
+    return middleware.RollbarNotifierMiddleware(_get_response), sent
+
+
+def test_rollbar_does_not_report_a_refused_page(rollbar_middleware):
+    """Viewflow raises PermissionDenied when someone opens a task or process that isn't theirs, and
+    Django answers 403, but Rollbar reported each one as an error. A missing record is still a
+    warning and a crash still an error."""
+    middleware, sent = rollbar_middleware
+    request = RequestFactory().get("/workflow/forms/resignation/1/exec_approve/2/")
+    for exc in (PermissionDenied(), Http404("No process matches the given query."), ValueError("boom")):
+        try:
+            raise exc
+        except Exception as caught:
+            middleware.process_exception(request, caught)
+
+    assert sent == ["warning", "error"]

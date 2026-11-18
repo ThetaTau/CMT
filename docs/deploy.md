@@ -47,7 +47,9 @@ Contents
   native open/click tracking surfaced by the `email_tracking` app.
 - **Google Cloud Storage** for user media (`django-storages`); **WhiteNoise**
   compressed-manifest for static files.
-- **Rollbar** for error monitoring.
+- **Rollbar** for error monitoring. A refused page (`PermissionDenied`, answered
+  with a 403) is not reported and a `Http404` is a warning
+  (`ROLLBAR["exception_level_filters"]` in `config/settings/base.py`).
 
 Local apps that ship models/migrations (all in `LOCAL_APPS`): `users`,
 `chapters`, `jobs`, `events`, `regions`, `scores`, `submissions`, `forms`,

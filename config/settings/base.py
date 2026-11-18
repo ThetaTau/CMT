@@ -7,6 +7,8 @@ from pathlib import Path
 
 import environ
 import rollbar
+from django.core.exceptions import PermissionDenied
+from django.http import Http404
 from google.oauth2 import service_account
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
@@ -429,6 +431,12 @@ ROLLBAR = {
     "branch": "master",
     "capture_username": True,
     "capture_email": True,
+    # Replaces the middleware's default, so keep its 404s-as-warnings entry. A refused page
+    # (PermissionDenied, which Django answers with a 403) is expected, not an error.
+    "exception_level_filters": [
+        (Http404, "warning"),
+        (PermissionDenied, "ignored"),
+    ],
 }
 
 rollbar.init(**ROLLBAR)
