@@ -343,6 +343,7 @@ def _reset_links(entered):
     return re.findall(r"http://testserver(/accounts/password/reset/key/\S+/)", message.body)
 
 
+@pytest.mark.usefixtures("fresh_rate_limits")
 @pytest.mark.parametrize("typed", ["Angela.Seegel@ThetaTau.engineering", "angela.seegel@thetatau.engineering"])
 def test_a_new_css_can_reset_their_password_whatever_the_case(auto_login_user, typed):
     central_office()

@@ -88,6 +88,21 @@ def test_password_reset_page_renders(client):
     assert b"email" in response.content.lower()
 
 
+@pytest.mark.django_db
+@pytest.mark.usefixtures("fresh_rate_limits")
+def test_too_many_reset_requests_show_the_too_many_requests_page(client):
+    """allauth sends at most 5 reset emails a minute per address and answers the 6th request by
+    rendering 429.html. There was none, so the member got a server error instead."""
+    url = reverse("account_reset_password")
+    email = {"email": "member@example.com"}
+
+    assert [client.post(url, email).status_code for _ in range(5)] == [302] * 5
+    response = client.post(url, email)
+
+    assert response.status_code == 429
+    assert {"429.html", "base.html"} <= {template.name for template in response.templates}
+
+
 # ---------------------------------------------------------------------------
 # Email confirmation
 #

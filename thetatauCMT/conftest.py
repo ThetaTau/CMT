@@ -1,5 +1,6 @@
 import pytest
 from django.contrib.sites.models import Site
+from django.core.cache import cache
 from django.core.management import call_command
 from django.utils import timezone
 from pytest_factoryboy import register
@@ -45,6 +46,18 @@ def django_db_setup(django_db_setup, django_db_blocker):
 @pytest.fixture
 def test_password():
     return "strong-test-pass"
+
+
+@pytest.fixture
+def fresh_rate_limits():
+    """Start and end with no allauth rate-limit counts (sign-in, sign-up, password reset).
+
+    allauth keeps them in the cache, which is one LocMemCache per test process and is never reset
+    between tests, so requests from earlier tests count against later ones.
+    """
+    cache.clear()
+    yield
+    cache.clear()
 
 
 @pytest.fixture
