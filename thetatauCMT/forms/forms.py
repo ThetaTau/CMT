@@ -20,7 +20,7 @@ from core.forms import (
     SchoolModelChoiceField,
     Select2ListCreateMultipleChoiceField,
 )
-from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES
+from core.models import CHAPTER_ROLES_CHOICES, NAT_OFFICERS_CHOICES, Semester
 from thetatauCMT.biglittle.forms import member_choice_field
 from thetatauCMT.biglittle.services import eligible_members
 from thetatauCMT.chapters.forms import ChapterForm
@@ -1284,6 +1284,14 @@ class RiskManagementForm(forms.ModelForm):
 
 
 class PledgeProgramForm(forms.ModelForm):
+    semester = forms.ChoiceField(
+        label="Which semester is this program for?",
+        help_text="Semesters with a program waiting for review or already approved are not listed.",
+        error_messages={
+            "invalid_choice": "That semester's program is waiting for review or already approved, "
+            "or the semester can no longer be submitted for. Please pick another semester.",
+        },
+    )
     date_start = forms.DateField(
         label="When did you/do you anticipate starting new member education?",
         widget=DatePicker(
@@ -1310,6 +1318,7 @@ class PledgeProgramForm(forms.ModelForm):
     class Meta:
         model = PledgeProgram
         fields = [
+            "semester",
             "weeks",
             "date_start",
             "date_complete",
@@ -1317,6 +1326,15 @@ class PledgeProgramForm(forms.ModelForm):
             "dues",
             "manual",
         ]
+
+    def __init__(self, *args, semesters=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if semesters is None:
+            semesters = PledgeProgram.submission_semesters()
+        self.fields["semester"].choices = [(semester.value, semester.label) for semester in semesters]
+
+    def clean_semester(self):
+        return Semester.from_value(self.cleaned_data["semester"])
 
 
 class AuditForm(forms.ModelForm):

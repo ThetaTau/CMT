@@ -721,7 +721,7 @@
           "key": "new-member-education-program",
           "name": "New member education program",
           "short_description": "Submit the programme your chapter will use to educate its new members.",
-          "long_description": "Must be approved before you pledge anyone. It is reviewed by the national office and may come back with requested revisions.",
+          "long_description": "Choose the semester it is for, so you can submit next semester's program while you plan it or a late one for last semester. Must be approved before you pledge anyone. It is reviewed by the national office and may come back with requested revisions.",
           "url_name": "viewflow:forms:pledgeprogramprocess:start",
           "audience": "officer",
           "roles": ["pledge/new member educator"],

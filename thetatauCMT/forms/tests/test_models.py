@@ -12,7 +12,7 @@ import datetime
 import pytest
 from django.utils import timezone
 
-from core.models import YearTermModel
+from core.models import Semester, YearTermModel
 from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.forms.models import ChapterReport, PledgeProgram, RiskManagement
 from thetatauCMT.forms.tests.factories import (
@@ -85,6 +85,26 @@ def test_pledge_program_signed_this_year_returns_program_when_match():
     program = PledgeProgramFactory.create(chapter=chapter)
     result = PledgeProgram.signed_this_year(chapter)
     assert result == program
+
+
+@pytest.mark.django_db
+@pytest.mark.freeze_time("2026-11-18 12:00:00")
+def test_pledge_program_submission_semesters_follow_config():
+    """Last, this and next semester by default; the Config keys widen or narrow the window."""
+    from thetatauCMT.configs.models import Config
+    from thetatauCMT.forms.models import NME_SEMESTERS_AHEAD_CONFIG_KEY, NME_SEMESTERS_BEHIND_CONFIG_KEY
+
+    fall_2026 = Semester(2026, "fa")
+    assert PledgeProgram.submission_semesters() == [Semester(2026, "sp"), fall_2026, Semester(2027, "sp")]
+
+    Config.objects.create(key=NME_SEMESTERS_AHEAD_CONFIG_KEY, value="<p>2</p>", description="")
+    behind = Config.objects.create(key=NME_SEMESTERS_BEHIND_CONFIG_KEY, value="<p>0</p>", description="")
+    assert PledgeProgram.submission_semesters() == [fall_2026, Semester(2027, "sp"), Semester(2027, "fa")]
+
+    # A value that is not a whole number falls back to the default of one.
+    behind.value = "<p>one</p>"
+    behind.save()
+    assert PledgeProgram.submission_semesters()[0] == Semester(2026, "sp")
 
 
 # ─── Depledge ─────────────────────────────────────────────────────────────────

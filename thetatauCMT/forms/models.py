@@ -25,6 +25,7 @@ from email_signals.models import EmailSignalMixin
 from multiselectfield import MultiSelectField
 from quickbooks.objects.attachable import Attachable, AttachableRef
 from quickbooks.objects.customer import Customer
+from viewflow.activation import STATUS as PROCESS_STATUS
 from viewflow.models import Process
 
 from core.finances import create_line, get_quickbooks_client, invoice_search
@@ -32,6 +33,7 @@ from core.models import (
     CHAPTER_OFFICER_CHOICES,
     CHAPTER_ROLES_CHOICES,
     EnumClass,
+    Semester,
     TimeStampedModel,
     YearTermModel,
     academic_encompass_start_end_date,
@@ -42,6 +44,20 @@ from core.models import (
 from thetatauCMT.chapters.models import Chapter
 from thetatauCMT.configs.models import Config
 from thetatauCMT.submissions.models import Submission
+
+# How many semesters before and after the current one a chapter may submit a New Member
+# Education program for. Blank or not a whole number means the default.
+NME_SEMESTERS_BEHIND_CONFIG_KEY = "NME_SEMESTERS_BEHIND"
+NME_SEMESTERS_AHEAD_CONFIG_KEY = "NME_SEMESTERS_AHEAD"
+DEFAULT_NME_SEMESTERS_BEHIND = 1
+DEFAULT_NME_SEMESTERS_AHEAD = 1
+
+
+def _semester_count(config_key, default):
+    try:
+        return max(int(Config.get_value(config_key).strip()), 0)
+    except ValueError:
+        return default
 
 
 class MultiSelectField(MultiSelectField):
@@ -146,6 +162,66 @@ class PledgeProgram(YearTermModel, TimeStampedModel, EmailSignalMixin):
 
     def __str__(self):
         return f"New Member Education Program for {self.chapter}"
+
+    SUBMISSION_STATUS_LABELS = {
+        "not_submitted": "Not submitted",
+        "review": "Waiting for Central Office review",
+        "approved": "Approved",
+        "revisions": "Revisions needed, please update it and resubmit",
+        "denied": "Denied, please update it and resubmit",
+    }
+
+    @property
+    def semester(self):
+        return Semester(self.year, self.term)
+
+    @classmethod
+    def submission_semesters(cls):
+        """The semesters a chapter may submit a program for, oldest first: the current
+        semester and the configured number before and after it."""
+        current = Semester.current()
+        behind = _semester_count(NME_SEMESTERS_BEHIND_CONFIG_KEY, DEFAULT_NME_SEMESTERS_BEHIND)
+        ahead = _semester_count(NME_SEMESTERS_AHEAD_CONFIG_KEY, DEFAULT_NME_SEMESTERS_AHEAD)
+        return [current.shift(count) for count in range(-behind, ahead + 1)]
+
+    def submission_status(self):
+        """A key of :attr:`SUBMISSION_STATUS_LABELS`. A program waiting for review or
+        approved cannot be submitted again."""
+        processes = list(self.process.all())
+        if any(process.status == PROCESS_STATUS.NEW for process in processes):
+            return "review"
+        if any(process.approval == "approved" for process in processes):
+            return "approved"
+        latest = max(processes, key=lambda process: process.created, default=None)
+        if latest is not None and latest.approval in ("revisions", "denied"):
+            return latest.approval
+        return "not_submitted"
+
+    @classmethod
+    def semester_options(cls, chapter):
+        """For each of :meth:`submission_semesters`, the chapter's program, its status
+        and whether a program can be submitted for that semester."""
+        semesters = cls.submission_semesters()
+        programs = cls.objects.filter(
+            chapter=chapter, year__gte=semesters[0].year, year__lte=semesters[-1].year
+        ).prefetch_related("process")
+        programs = {program.semester: program for program in programs}
+        current = Semester.current()
+        options = []
+        for semester in semesters:
+            program = programs.get(semester)
+            status = program.submission_status() if program else "not_submitted"
+            options.append(
+                {
+                    "semester": semester,
+                    "program": program,
+                    "status": status,
+                    "status_label": cls.SUBMISSION_STATUS_LABELS[status],
+                    "can_submit": status not in ("review", "approved"),
+                    "is_current": semester == current,
+                }
+            )
+        return options
 
     @classmethod
     def signed_this_year(cls, chapter):

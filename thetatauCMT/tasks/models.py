@@ -82,14 +82,16 @@ class Task(models.Model):
         ).all()
         return dates
 
-    def incomplete_dates_for_task_chapter(self, chapter):
+    def incomplete_dates_for_task_chapter(self, chapter, as_of=None):
         school_type = chapter.school_type
-        max_date = TODAY_END + timedelta(self.days_advance)
+        # ``as_of`` (a date) measures the window from that day instead of today.
+        reference = TODAY_END if as_of is None else datetime.datetime.combine(as_of + timedelta(1), datetime.time())
+        max_date = reference + timedelta(self.days_advance)
         # (Todays date + days_advance) > due date
         # Mar 16 + 30 days -> April 15,
         # if due date is April 15 then lte max_date and is a due date
         # You have this many days to submit the task
-        min_date = TODAY_END - (timedelta(self.days_advance * 2))
+        min_date = reference - (timedelta(self.days_advance * 2))
         # ``archived`` dates are retired ("no longer needed") and must never be
         # surfaced as incomplete work nor auto-completed by ``mark_complete``.
         dates = self.dates.filter(
@@ -113,14 +115,18 @@ class Task(models.Model):
             return completed.submission_object
 
     @classmethod
-    def mark_complete(cls, name, chapter, current_roles=None, user=None, obj=None):
+    def mark_complete(cls, name, chapter, current_roles=None, user=None, obj=None, as_of=None):
+        """Complete the chapter's earliest open due date for the task named ``name``.
+
+        ``as_of`` completes the due date that submitting on that day would have, for
+        work submitted for another semester."""
         extra = {}
         if current_roles:
             extra = {"owner__in": current_roles}
         task = Task.objects.filter(name=name, **extra).first()
         if not task:
             return
-        next_date = task.incomplete_dates_for_task_chapter(chapter).first()
+        next_date = task.incomplete_dates_for_task_chapter(chapter, as_of=as_of).first()
         if not next_date:
             return
         # ``get_or_create`` guards against duplicate rows when the same task is

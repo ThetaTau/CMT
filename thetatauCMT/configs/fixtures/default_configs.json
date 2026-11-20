@@ -268,5 +268,25 @@
         "description": "Minimum chapter size, in student members (actives and PNMs). Chapters below it are flagged on the Chapter Health tab of the region and national dashboards and on My Chapters. A whole number; blank means 10.",
         "modified": "2026-11-01T00:00:00Z"
     }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "NME_SEMESTERS_AHEAD",
+        "value": "",
+        "description": "New Member Education programs: how many semesters after the current one a chapter may submit a program for, so they can submit next semester's while they plan it. A whole number; 0 means none; blank means 1.",
+        "modified": "2026-11-18T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "NME_SEMESTERS_BEHIND",
+        "value": "",
+        "description": "New Member Education programs: how many semesters before the current one a chapter may still submit a late program for. A whole number; 0 means none; blank means 1.",
+        "modified": "2026-11-18T00:00:00Z"
+    }
 }
 ]

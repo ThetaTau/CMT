@@ -1466,12 +1466,12 @@ class PledgeProgramProcessFlow(Flow):
             next_step="Central Office Review",
             state="Pending Central Office Review",
             message=(
-                "This if a notification that the Central Office has "
-                "received the new member education program for you chapter.<br>"
+                "This is a notification that the Central Office has received the "
+                f"{model_obj.semester.label} new member education program for your chapter.<br>"
                 "Here is a link to the program under review: "
                 f"<a href='https://docs.google.com/document/d/{chapter.nme_file_id}/edit' target='_blank'>NME Program</a>"
             ),
-            fields=["manual"],
+            fields=[{"Semester": model_obj.semester.label}, "manual"],
             email_officers=True,
             extra_emails={
                 chapter.region.email,
@@ -1489,13 +1489,13 @@ class PledgeProgramProcessFlow(Flow):
             next_step="Chapter Resubmit",
             state="Chapter New Member Education Program Rejected",
             message=(
-                "This is a notification that the Central Office has "
-                "rejected the new member education program for you chapter."
+                "This is a notification that the Central Office has rejected the "
+                f"{model_obj.semester.label} new member education program for your chapter. "
                 "Please review the notes and resubmit ASAP.<br>"
                 "Here is a link to the program under review: "
                 f"<a href='https://docs.google.com/document/d/{chapter.nme_file_id}/edit' target='_blank'>NME Program</a>"
             ),
-            fields=["approval", "approval_comments"],
+            fields=[{"Semester": model_obj.semester.label}, "approval", "approval_comments"],
             attachments=[],
             email_officers=True,
             extra_emails={
@@ -1551,11 +1551,11 @@ class PledgeProgramProcessFlow(Flow):
             next_step="Complete",
             state="Chapter New Member Education Program Approved",
             message=(
-                "This is a notification that the Central Office has "
-                "approved the new member education program for you chapter."
+                "This is a notification that the Central Office has approved the "
+                f"{model_obj.semester.label} new member education program for your chapter. "
                 "Attached is the final approved program."
             ),
-            fields=["approval", "approval_comments"],
+            fields=[{"Semester": model_obj.semester.label}, "approval", "approval_comments"],
             attachments=["program.other_manual"],
             email_officers=True,
             extra_emails={

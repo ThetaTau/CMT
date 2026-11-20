@@ -21,6 +21,7 @@ from django.http import Http404, HttpRequest, HttpResponse, HttpResponseRedirect
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.functional import cached_property
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -43,6 +44,7 @@ from core.models import (
     NAT_OFFICERS,
     SEMESTER,
     TODAY_END,
+    Semester,
     current_term,
     current_year,
     current_year_term_slug,
@@ -1983,7 +1985,11 @@ def pledge_program_request_revision(request, process_pk):
     The viewflow/Google-sheets notification is unreliable, so this gives a
     national officer a one-click, on-demand reminder from the program list.
     """
-    process = PledgeProgramProcess.objects.filter(pk=process_pk).select_related("chapter", "chapter__region").first()
+    process = (
+        PledgeProgramProcess.objects.filter(pk=process_pk)
+        .select_related("chapter", "chapter__region", "program")
+        .first()
+    )
     redirect_to = request.META.get("HTTP_REFERER") or reverse("forms:pledge_program_list")
     if process is None:
         messages.add_message(request, messages.ERROR, "Requested new member education program could not be found.")
@@ -2004,8 +2010,10 @@ def pledge_program_request_revision(request, process_pk):
         )
     else:
         program_link = "your New Member Education program"
+    semester = f" for {process.program.semester.label}" if process.program else ""
     message = (
-        "Comments have been added to your NME program, please revise and resubmit.<br><br>" f"Program: {program_link}"
+        f"Comments have been added to your NME program{semester}, please revise and resubmit.<br><br>"
+        f"Program: {program_link}"
     )
     if process.approval_comments:
         message += f"<br><br>Reviewer comments:<br>{process.approval_comments}"
@@ -3648,23 +3656,64 @@ class PledgeProgramProcessCreateView(LoginRequiredMixin, CreateProcessView):
     def get_success_url(self):
         return reverse("viewflow:forms:pledgeprogramprocess:start")
 
+    @cached_property
+    def semester_options(self):
+        return PledgeProgram.semester_options(self.request.user.current_chapter)
+
+    @cached_property
+    def open_semesters(self):
+        return [option["semester"] for option in self.semester_options if option["can_submit"]]
+
+    @cached_property
+    def selected_semester(self):
+        """The open semester the form is for: the one posted or asked for with
+        ``?semester=``, otherwise this semester, the nearest later one, then the nearest earlier one."""
+        requested = Semester.from_value(self.request.POST.get("semester") or self.request.GET.get("semester"))
+        if requested in self.open_semesters:
+            return requested
+        current = Semester.current().ordinal
+        return min(
+            self.open_semesters,
+            key=lambda semester: (semester.ordinal < current, abs(semester.ordinal - current)),
+            default=None,
+        )
+
     def get_object(self, queryset=None):
-        program = PledgeProgram.objects.filter(
+        """The chapter's program for the selected semester, which a resubmission updates."""
+        semester = self.selected_semester
+        if semester is None:
+            return None
+        return PledgeProgram.objects.filter(
             chapter=self.request.user.current_chapter,
-            year=PledgeProgram.current_year(),
-            term=PledgeProgram.current_term(),
+            year=semester.year,
+            term=semester.term,
         ).first()
-        return program
+
+    def get_initial(self):
+        initial = super().get_initial()
+        if self.selected_semester is not None:
+            initial["semester"] = self.selected_semester.value
+        return initial
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["semesters"] = self.open_semesters
+        return kwargs
 
     def activation_done(self, *args, **kwargs):
         """Finish task activation."""
         self.activation.done()
-        self.success("New Member Education Program submitted successfully.")
+        self.success(
+            "New Member Education Program for {semester} submitted successfully.",
+            semester=self.activation.process.program.semester.label,
+        )
 
     def form_valid(self, form, *args, **kwargs):
         chapter = self.request.user.current_chapter
+        semester = form.cleaned_data["semester"]
         form.instance.chapter = chapter
-        form.instance.year = datetime.datetime.now().year
+        form.instance.year = semester.year
+        form.instance.term = semester.term
         current_roles = self.request.user.chapter_officer()
         if not current_roles or current_roles == {""}:
             messages.add_message(
@@ -3689,11 +3738,15 @@ class PledgeProgramProcessCreateView(LoginRequiredMixin, CreateProcessView):
                 form.instance.pk = existing.pk
                 form.instance.created = existing.created
                 program = form.save()
+            # A program for another semester completes the due date that submitting it during
+            # that semester would have, not one belonging to the current semester.
+            as_of = None if semester == Semester.current() else semester.nearest_day(datetime.date.today())
             Task.mark_complete(
                 name="New Member Education Program",
                 chapter=chapter,
                 user=self.request.user,
                 obj=program,
+                as_of=as_of,
             )
             self.activation.process.program = program
             self.activation.process.chapter = chapter
@@ -3722,13 +3775,8 @@ class PledgeProgramProcessCreateView(LoginRequiredMixin, CreateProcessView):
                     "pk": process.pk,
                 }
             )
-        submitted = False
-        if self.object:
-            if "NEW" in self.object.process.values_list("status", flat=True):
-                submitted = "review"
-            elif "approved" in self.object.process.values_list("approval", flat=True):
-                submitted = "approved"
-        context["submitted"] = submitted
+        context["semester_options"] = self.semester_options
+        context["open_semesters"] = self.open_semesters
         context["program_link"] = (
             f"https://docs.google.com/document/d/{chapter.nme_file_id}/edit" if chapter.nme_file_id != "none" else None
         )

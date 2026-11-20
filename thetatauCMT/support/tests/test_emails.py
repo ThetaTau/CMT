@@ -163,7 +163,7 @@ def test_e4_award_granted_goes_to_the_digest(alpha, css, regent):
 def test_e5_nme_revision_request_goes_to_the_digest(alpha, css, regent):
     natoff = UserFactory(status="alumni")
     Group.objects.get_or_create(name="natoff")[0].user_set.add(natoff)
-    process = SimpleNamespace(chapter=alpha, approval_comments="Please add week 3.")
+    process = SimpleNamespace(chapter=alpha, approval_comments="Please add week 3.", program=None)
     request = _messages_request(natoff)
 
     with mock.patch("thetatauCMT.forms.views.PledgeProgramProcess") as model:

@@ -1,5 +1,6 @@
 import datetime
 import re
+from dataclasses import dataclass
 from datetime import time, timedelta
 from enum import Enum
 
@@ -487,6 +488,56 @@ class YearTermModel(models.Model):
             datetime.date(date.year, min_month, 1),
             datetime.date(_year, max_month, 1),
         )
+
+
+@dataclass(frozen=True)
+class Semester:
+    """A Spring (January to June) or Fall (July to December) semester, stored on
+    :class:`YearTermModel` rows as ``year`` and ``term``."""
+
+    year: int
+    term: str
+
+    @classmethod
+    def current(cls):
+        return cls(current_year(), current_term())
+
+    @classmethod
+    def from_value(cls, value):
+        """The semester written as :attr:`value` (``"2027-sp"``), or None."""
+        year, _, term = str(value or "").partition("-")
+        if not year.isdigit() or term not in ("sp", "fa"):
+            return None
+        return cls(int(year), term)
+
+    @property
+    def value(self):
+        return f"{self.year}-{self.term}"
+
+    @property
+    def label(self):
+        return f"{YearTermModel.TERMS.get_value(self.term)} {self.year}"
+
+    @property
+    def ordinal(self):
+        """Counts semesters, so consecutive semesters differ by one."""
+        return self.year * 2 + (self.term == "fa")
+
+    def shift(self, count):
+        """The semester ``count`` semesters later, or earlier when negative."""
+        year, fall = divmod(self.ordinal + count, 2)
+        return Semester(year, "fa" if fall else "sp")
+
+    def date_range(self):
+        """The first day of the semester and the first day after it."""
+        if self.term == "sp":
+            return datetime.date(self.year, 1, 1), datetime.date(self.year, 7, 1)
+        return datetime.date(self.year, 7, 1), datetime.date(self.year + 1, 1, 1)
+
+    def nearest_day(self, day):
+        """``day`` when it is in the semester, otherwise the semester's day closest to it."""
+        start, end = self.date_range()
+        return min(max(day, start), end - timedelta(days=1))
 
 
 def annotate_rmp_status(queryset, date=TODAY_END):

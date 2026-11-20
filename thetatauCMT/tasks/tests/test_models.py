@@ -702,3 +702,18 @@ def test_mark_complete_ignores_task_with_only_archived_dates(chapter):
     Task.mark_complete(task.name, chapter)
 
     assert not TaskChapter.objects.filter(task=only_date, chapter=chapter).exists()
+
+
+@pytest.mark.django_db
+def test_mark_complete_as_of_completes_the_due_date_near_that_day(chapter):
+    """Work submitted for a later semester completes that semester's due date, not today's."""
+    school_type = chapter.school_type
+    task, due_soon = _make_task_with_date(school_type=school_type, days_offset=5)
+    due_later = TaskDate.objects.create(
+        task=task, school_type=school_type, date=datetime.date.today() + datetime.timedelta(days=400)
+    )
+
+    Task.mark_complete(task.name, chapter, as_of=due_later.date - datetime.timedelta(days=10))
+
+    assert TaskChapter.objects.filter(task=due_later, chapter=chapter).exists()
+    assert not TaskChapter.objects.filter(task=due_soon, chapter=chapter).exists()

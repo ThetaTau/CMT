@@ -15,6 +15,7 @@ from django.http import HttpResponse
 from django.test import override_settings
 from django.urls import reverse
 
+from core.models import Semester
 from thetatauCMT.chapters.tests.factories import ChapterFactory
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -5444,6 +5445,7 @@ def test_pledge_program_create_view_saves_program_before_process():
 
     form = PledgeProgramForm(
         data={
+            "semester": Semester.current().value,
             "weeks": 6,
             "date_start": "06/01/2026",
             "date_complete": "08/01/2026",
@@ -5504,6 +5506,7 @@ def test_pledge_program_create_view_duplicate_program_reuses_existing_row():
 
     form = PledgeProgramForm(
         data={
+            "semester": Semester.current().value,
             "weeks": 6,
             "date_start": "06/01/2026",
             "date_complete": "08/01/2026",
@@ -5538,3 +5541,168 @@ def test_pledge_program_create_view_duplicate_program_reuses_existing_row():
     assert winner.dues == 100
     process.save()
     assert PledgeProgramProcess.objects.filter(pk=process.pk).exists()
+
+
+# ─── NME program for last, this or next semester ─────────────────────────────
+
+# Fall 2026, so a program can be submitted for Spring 2026, Fall 2026 and Spring 2027.
+NME_NOW = "2026-11-18 12:00:00"
+NME_URL = "viewflow:forms:pledgeprogramprocess:start"
+
+
+def _nme_officer(auto_login_user):
+    from thetatauCMT.support.tests.factories import make_regent
+
+    return auto_login_user(user=make_regent())
+
+
+def _nme_program(chapter, year, term, approval=None, **fields):
+    """A submitted program: waiting for review, or reviewed with ``approval``."""
+    from django.utils import timezone
+    from viewflow.activation import STATUS
+    from viewflow.models import Task as FlowTask
+
+    from thetatauCMT.forms.flows import PledgeProgramProcessFlow
+    from thetatauCMT.forms.models import PledgeProgramProcess
+    from thetatauCMT.forms.tests.factories import PledgeProgramFactory
+
+    program = PledgeProgramFactory.create(chapter=chapter, year=year, term=term, **fields)
+    finished = None if approval is None else timezone.now()
+    process = PledgeProgramProcess.objects.create(
+        chapter=chapter,
+        program=program,
+        flow_class=PledgeProgramProcessFlow,
+        status=STATUS.NEW if approval is None else STATUS.DONE,
+        approval=approval or "not_reviewed",
+        finished=finished,
+    )
+    FlowTask.objects.create(
+        flow_task=PledgeProgramProcessFlow.review if approval is None else PledgeProgramProcessFlow.end,
+        process=process,
+        status=STATUS.NEW if approval is None else STATUS.DONE,
+        finished=finished,
+    )
+    return program
+
+
+def _nme_post(semester, **fields):
+    from django.utils import timezone
+
+    return {
+        "semester": semester,
+        "weeks": 6,
+        "date_start": "01/15/2027",
+        "date_complete": "03/01/2027",
+        "date_initiation": "03/15/2027",
+        "dues": 100,
+        "manual": "basic",
+        "_viewflow_activation-started": timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
+        **fields,
+    }
+
+
+@pytest.mark.django_db
+@pytest.mark.freeze_time(NME_NOW)
+def test_nme_page_offers_last_this_and_next_semester(auto_login_user):
+    client, _user = _nme_officer(auto_login_user)
+
+    response = client.get(reverse(NME_URL))
+
+    form = response.context["form"]
+    assert form.fields["semester"].choices == [
+        ("2026-sp", "Spring 2026"),
+        ("2026-fa", "Fall 2026"),
+        ("2027-sp", "Spring 2027"),
+    ]
+    assert form.initial["semester"] == "2026-fa"
+
+
+@pytest.mark.django_db
+@pytest.mark.freeze_time(NME_NOW)
+def test_nme_semesters_waiting_for_review_or_approved_are_not_offered(auto_login_user):
+    client, user = _nme_officer(auto_login_user)
+    _nme_program(user.current_chapter, 2026, "sp", approval="approved")
+    _nme_program(user.current_chapter, 2026, "fa")
+
+    response = client.get(reverse(NME_URL))
+
+    assert [option["status"] for option in response.context["semester_options"]] == [
+        "approved",
+        "review",
+        "not_submitted",
+    ]
+    form = response.context["form"]
+    assert form.fields["semester"].choices == [("2027-sp", "Spring 2027")]
+    assert form.initial["semester"] == "2027-sp"
+    content = response.content.decode()
+    assert "?semester=2027-sp" in content
+    assert "?semester=2026-fa" not in content
+
+
+@pytest.mark.django_db
+@pytest.mark.freeze_time(NME_NOW)
+def test_nme_officer_submits_next_semesters_program_early(auto_login_user):
+    """In November an officer submits the program for the coming Spring."""
+    import datetime
+    from unittest.mock import patch
+
+    from django.contrib.messages import get_messages
+
+    from thetatauCMT.forms.models import PledgeProgram, PledgeProgramProcess
+
+    client, user = _nme_officer(auto_login_user)
+    chapter = user.current_chapter
+
+    with patch("thetatauCMT.forms.views.Task.mark_complete") as mark_complete:
+        response = client.post(reverse(NME_URL), _nme_post("2027-sp"))
+
+    assert response.status_code == 302
+    program = PledgeProgram.objects.get(chapter=chapter)
+    assert (program.year, program.term) == (2027, "sp")
+    assert PledgeProgramProcess.objects.get(chapter=chapter).program == program
+    # The due date it completes is the one submitting at the start of Spring 2027 would have.
+    assert mark_complete.call_args.kwargs["as_of"] == datetime.date(2027, 1, 1)
+    assert any("Spring 2027" in str(message) for message in get_messages(response.wsgi_request))
+
+
+@pytest.mark.django_db
+@pytest.mark.freeze_time(NME_NOW)
+def test_nme_cannot_resubmit_a_semester_waiting_for_review(auto_login_user):
+    from thetatauCMT.forms.models import PledgeProgramProcess
+
+    client, user = _nme_officer(auto_login_user)
+    _nme_program(user.current_chapter, 2026, "fa")
+
+    response = client.post(reverse(NME_URL), _nme_post("2026-fa"))
+
+    assert response.status_code == 200
+    assert "semester" in response.context["form"].errors
+    assert PledgeProgramProcess.objects.filter(chapter=user.current_chapter).count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.freeze_time(NME_NOW)
+def test_nme_resubmitting_last_semesters_program_updates_it(auto_login_user):
+    """The status table's link opens a program sent back for revisions prefilled, and the late
+    resubmission updates it and completes the due date as of the end of that semester."""
+    import datetime
+    from unittest.mock import patch
+
+    from thetatauCMT.forms.models import PledgeProgram
+
+    client, user = _nme_officer(auto_login_user)
+    program = _nme_program(user.current_chapter, 2026, "sp", approval="revisions", weeks=9)
+
+    response = client.get(reverse(NME_URL), {"semester": "2026-sp"})
+    form = response.context["form"]
+    assert form.initial["semester"] == "2026-sp"
+    assert form.instance == program
+
+    with patch("thetatauCMT.forms.views.Task.mark_complete") as mark_complete:
+        response = client.post(reverse(NME_URL) + "?semester=2026-sp", _nme_post("2026-sp", weeks=7))
+
+    assert response.status_code == 302
+    assert PledgeProgram.objects.filter(chapter=user.current_chapter).count() == 1
+    program.refresh_from_db()
+    assert program.weeks == 7
+    assert mark_complete.call_args.kwargs["as_of"] == datetime.date(2026, 6, 30)

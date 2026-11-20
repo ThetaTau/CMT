@@ -134,6 +134,19 @@ def test_semester_encompass_start_end_date(given_date, expected_dates):
     assert models.semester_encompass_start_end_date(given_date) == expected_dates
 
 
+def test_semester_shift_parse_and_nearest_day():
+    fall_2026 = models.Semester(2026, "fa")
+    assert fall_2026.shift(1) == models.Semester(2027, "sp")
+    assert fall_2026.shift(-3) == models.Semester(2025, "sp")
+    assert models.Semester.from_value("2027-sp") == models.Semester(2027, "sp")
+    assert models.Semester.from_value("2027-su") is None
+    assert models.Semester.from_value("spring") is None
+    november = datetime.date(2026, 11, 18)
+    assert fall_2026.nearest_day(november) == november
+    assert models.Semester(2027, "sp").nearest_day(november) == datetime.date(2027, 1, 1)
+    assert models.Semester(2026, "sp").nearest_day(november) == datetime.date(2026, 6, 30)
+
+
 @pytest.mark.freeze_time("2020-05-21")
 @pytest.mark.parametrize(
     "given_date,expected_dates",

@@ -399,6 +399,8 @@ Each accepts a **username**, an **email**, or a **national-officer role name**
 | `CSS_REALTIME_EMAILS` | `""` | Which Regent emails a specialist gets on CC as sent; the rest arrive in the daily digest. Kind codes are listed in the row's description; `none` sends everything through the digest. Blank means the time-sensitive set in `docs/specs/chapter-support-specialist.md`. |
 | `NATOFF_2FA_REQUIRED_FROM` | `""` | Date (`YYYY-MM-DD`) from which every National Officer must use two-factor sign-in; until then they see a banner. Blank means no requirement for National Officers. Admins and Chapter Support Specialists always need it. |
 | `DASHBOARD_MIN_CHAPTER_SIZE` | `""` | Minimum chapter size in student members (actives and PNMs). Chapters below it are flagged on the Chapter Health tab of the region and national dashboards and on My Chapters. Blank means `10`. |
+| `NME_SEMESTERS_AHEAD` | `""` | How many semesters after the current one a chapter may submit a New Member Education program for, so next semester's can be submitted while it is planned. `0` means none. Blank means `1`. |
+| `NME_SEMESTERS_BEHIND` | `""` | How many semesters before the current one a chapter may still submit a late New Member Education program for. `0` means none. Blank means `1`. |
 
 ### 5.3 Feature flags (`feature_flags.json`)
 
