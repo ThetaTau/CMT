@@ -308,5 +308,15 @@
         "description": "Case Competition: chapter roles whose holders get their chapter's competition emails (reminders, receipts and results), besides the chapter's named contacts and its five officers. Role names exactly as they appear on officer records (for example: pd chair), one per line or comma separated. Blank means the PD Chair.",
         "modified": "2026-11-20T00:00:00Z"
     }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "CASE_COMPETITION_CONTACT",
+        "value": "",
+        "description": "Case Competition: who answers questions. Replies to every competition email go here, and the competition page and the emails' footer name them. A username or email of a CMT account, a National Officer role name (for example: professional development director) or any email address, such as a shared mailbox. It overrides each competition's own contact role and contact email. Blank means the competition's own contact: its contact email, else whoever holds its contact role (the Professional Development Director), else Central Office while nobody holds it.",
+        "modified": "2026-11-23T00:00:00Z"
+    }
 }
 ]

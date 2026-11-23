@@ -155,8 +155,8 @@
     </section>
   {% endif %}
   <p>
-    Questions? Contact {% if contact %}{{ contact.name }}, {% endif %}the competition contact, at
-    <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.
+    Questions? Contact {% if contact.name %}{{ contact.name }}, {% endif %}the competition contact, at
+    <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>.
     Every time on this page is in {{ competition.zone_label }} time.
   </p>
 {% endblock content %}

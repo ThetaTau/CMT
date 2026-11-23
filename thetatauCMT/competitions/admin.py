@@ -115,13 +115,16 @@ class CompetitionAdmin(CompetitionTimeZoneMixin, admin.ModelAdmin):
     list_filter = ("is_published",)
     search_fields = ("name", "short_name", "year_label", "case_title")
     prepopulated_fields = {"slug": ("short_name", "year_label")}
-    readonly_fields = ("times_in", "created_by", "created", "modified")
+    readonly_fields = ("times_in", "contact_now", "created_by", "created", "modified")
     inlines = (KeyDateInline, RoundInline, ParticipantInline)
     actions = ("copy_to_next_year",)
     fieldsets = (
         (None, {"fields": ("name", "short_name", "year_label", "slug", "is_published")}),
         ("Case", {"fields": ("case_title", "case_description")}),
-        ("Competition page", {"fields": ("about", "resources", "announcement", "contact_role", "contact_email")}),
+        (
+            "Competition page",
+            {"fields": ("about", "resources", "announcement", "contact_now", "contact_role", "contact_email")},
+        ),
         ("Dates", {"fields": ("times_in", "time_zone", "intent_opens_at", "intent_closes_at")}),
         ("Record", {"classes": ("collapse",), "fields": ("created_by", "created", "modified")}),
     )
@@ -146,6 +149,20 @@ class CompetitionAdmin(CompetitionTimeZoneMixin, admin.ModelAdmin):
     @admin.display(description="Intent form")
     def intent_window(self, obj):
         return f"{obj.format_time(obj.intent_opens_at)} to {obj.format_time(obj.intent_closes_at)}"
+
+    @admin.display(description="Contact now")
+    def contact_now(self, obj):
+        """Who replies reach today, and why, so the setting overriding the fields below is never a surprise."""
+        contact = services.competition_contact(obj)
+        who = f"{contact.name} ({contact.email})" if contact.name else contact.email
+        why = {
+            services.CONTACT_FROM_SETTING: (
+                f"set by the {services.CONTACT_CONFIG_KEY} setting, which overrides the contact role and email below"
+            ),
+            services.CONTACT_FROM_COMPETITION: "from the contact role and email below",
+            services.CONTACT_FROM_CENTRAL_OFFICE: "nobody holds the contact role below and there is no contact email",
+        }[contact.source]
+        return f"{who}: {why}. Replies to the competition's emails go here."
 
     def save_model(self, request, obj, form, change):
         if not change and obj.created_by_id is None:

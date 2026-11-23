@@ -113,7 +113,8 @@ class Competition(TimeStampedModel):
         default=DEFAULT_CONTACT_ROLE,
         help_text=_(
             "The National Officer role to contact with questions. The page shows whoever holds it, and "
-            "replies to the competition's emails go to them."
+            "replies to the competition's emails go to them. The CASE_COMPETITION_CONTACT setting overrides "
+            "this; with nobody in the role and no contact email, replies go to Central Office."
         ),
     )
     contact_email = models.EmailField(

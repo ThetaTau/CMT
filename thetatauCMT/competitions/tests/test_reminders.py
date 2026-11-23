@@ -218,6 +218,18 @@ def test_chapter_emails_reach_the_css_digest_and_reply_to_the_contact(round_, ch
     assert mail.outbox[0].reply_to == ["necc@example.com"]
 
 
+def test_the_contact_setting_answers_every_email(round_, chapter):
+    from .. import services
+    from .factories import set_config
+
+    set_config(services.CONTACT_CONFIG_KEY, "case.competition@example.com")
+    run(morning(12, 4))
+    message = mail.outbox[0]
+    assert message.reply_to == ["case.competition@example.com"]
+    footer = " ".join(message.alternatives[0][0].split())
+    assert "reach the competition contact, at case.competition@example.com" in footer
+
+
 def test_unpublished_competitions_send_nothing(round_, chapter):
     round_.competition.is_published = False
     round_.competition.save()

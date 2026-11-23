@@ -406,13 +406,35 @@ class TestRecipients:
 
     def test_replies_go_to_the_contact(self):
         competition = CompetitionFactory(contact_email="")
-        assert services.reply_to(competition) == [services.CENTRAL_OFFICE_EMAIL]
-        give_role(
+        # Nobody holds the contact role yet.
+        contact = services.competition_contact(competition)
+        assert (contact.name, contact.email, contact.source) == (
+            "Central Office",
+            services.CENTRAL_OFFICE_EMAIL,
+            services.CONTACT_FROM_CENTRAL_OFFICE,
+        )
+        director = give_role(
             member(ChapterFactory(name="delta"), status="alumni", email="pdd@example.com"),
             "professional development director",
         )
         assert services.reply_to(competition) == ["pdd@example.com"]
         competition.contact_email = "necc@example.com"
+        contact = services.competition_contact(competition)
+        assert (contact.name, contact.email) == (director.name, "necc@example.com")
+
+    def test_the_contact_setting_overrides_the_competition(self):
+        """Owner, 2026-11-23: the role is often vacant, so a setting decides who gets the replies."""
+        competition = CompetitionFactory(contact_email="necc@example.com")
+        helper = member(ChapterFactory(name="beta"), status="alumni", email="helper@example.com")
+        set_config(services.CONTACT_CONFIG_KEY, "Helper@Example.com")
+        contact = services.competition_contact(competition)
+        assert (contact.user, contact.email, contact.source) == (helper, "helper@example.com", "setting")
+        set_config(services.CONTACT_CONFIG_KEY, "<p>case.competition@example.com</p>")  # a shared mailbox
+        contact = services.competition_contact(competition)
+        assert (contact.name, contact.email, contact.user) == ("", "case.competition@example.com", None)
+        # The managers' summary goes to the contact while nobody is named as a manager.
+        assert services.manager_emails(competition) == ["case.competition@example.com"]
+        set_config(services.CONTACT_CONFIG_KEY, "grand regent")  # a vacant role is skipped
         assert services.reply_to(competition) == ["necc@example.com"]
 
 

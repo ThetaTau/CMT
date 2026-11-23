@@ -54,19 +54,19 @@ class CompetitionEmail(SupportCopyMixin, EmailNotification):
     render_types = ["html"]
 
     def setup(self, competition, to_emails, subject, context, chapter=None, link=""):
+        contact = services.competition_contact(competition)
         self.to_emails = list(to_emails)
         self.cc = []
-        self.reply_to = services.reply_to(competition)
+        self.reply_to = [contact.email]
         self.subject = f"{competition.short_name}: {subject}"
         self.support_chapter = chapter
         self.support_kind = SupportDigestEntry.Kind.CASE_COMPETITION if chapter is not None else None
         self.support_link = link
-        contact = services.contact_person(competition)
         self.context = {
             "competition": competition,
             "competition_url": absolute("competitions:detail", competition.slug),
-            "contact_name": contact.name if contact is not None else "",
-            "reply_email": self.reply_to[0],
+            "contact_name": contact.name,
+            "reply_email": contact.email,
             "host": settings.CURRENT_URL,
             **context,
         }

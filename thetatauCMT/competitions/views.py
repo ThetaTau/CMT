@@ -190,8 +190,7 @@ class CompetitionDetailView(CompetitionPageMixin, TemplateView):
             {
                 "rounds": rounds,
                 "key_dates": list(competition.key_dates.all()),
-                "contact": services.contact_person(competition),
-                "contact_email": services.reply_to(competition)[0],
+                "contact": services.competition_contact(competition),
                 "intent_opens": competition.format_time(competition.intent_opens_at),
                 "intent_closes": competition.format_time(competition.intent_closes_at),
                 "intent_open": services.intent_open(competition, now),

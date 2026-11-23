@@ -34,10 +34,12 @@ from .models import (
 
 MANAGERS_CONFIG_KEY = "CASE_COMPETITION_MANAGERS"
 CHAPTER_ROLES_CONFIG_KEY = "CASE_COMPETITION_CHAPTER_ROLES"
+CONTACT_CONFIG_KEY = "CASE_COMPETITION_CONTACT"
 DEFAULT_MANAGER_ROLE = "professional development director"
 DEFAULT_EMAIL_ROLES = frozenset({"pd chair"})
 # "Members of the chapter" (Q6 B, S29): its current members and its PNMs, by their own chapter.
 MEMBER_STATUSES = frozenset(ACTIVE_STATUSES) | {"pnm"}
+CENTRAL_OFFICE_NAME = "Central Office"
 CENTRAL_OFFICE_EMAIL = "central.office@thetatau.org"
 
 # A round's state comes from its dates (Round lifecycle); nothing stores it.
@@ -137,19 +139,58 @@ def _unique_emails(values):
     return sorted(emails, key=str.lower)
 
 
-def contact_person(competition):
-    """Whoever holds the competition's contact role, shown on its page."""
-    return resolve_config_actor(competition.contact_role) if competition.contact_role else None
+@dataclass
+class CompetitionContact:
+    """Who answers questions about a competition (Q13): replies to its emails go to ``email``,
+    and its page and the emails' footer name ``name`` (empty for a bare address).
+    """
+
+    name: str
+    email: str
+    user: object = None
+    # Where it came from: the CASE_COMPETITION_CONTACT setting, the competition's own contact
+    # email and role, or Central Office because nobody holds the role.
+    source: str = "competition"
+
+
+CONTACT_FROM_SETTING, CONTACT_FROM_COMPETITION, CONTACT_FROM_CENTRAL_OFFICE = "setting", "competition", "central_office"
+
+
+def competition_contact(competition):
+    """The competition contact: the ``CASE_COMPETITION_CONTACT`` setting when it names someone,
+    else the competition's contact email and the holder of its contact role, else Central Office.
+
+    The setting takes a username or email of a CMT account, a National Officer role or any email
+    address, so replies reach someone while the contact role is vacant (owner, 2026-11-23). A
+    setting that names a vacant role, or nothing usable, is skipped.
+    """
+    from django.core.exceptions import ValidationError
+    from django.core.validators import validate_email
+
+    from thetatauCMT.support.services import config_list
+
+    for value in config_list(CONTACT_CONFIG_KEY)[:1]:
+        person = resolve_config_actor(value)
+        if person is not None and person.email:
+            return CompetitionContact(person.name, person.email, person, CONTACT_FROM_SETTING)
+        try:
+            validate_email(value)
+        except ValidationError:
+            continue
+        return CompetitionContact("", value, None, CONTACT_FROM_SETTING)
+    person = resolve_config_actor(competition.contact_role) if competition.contact_role else None
+    if competition.contact_email:
+        return CompetitionContact(
+            person.name if person is not None else "", competition.contact_email, person, CONTACT_FROM_COMPETITION
+        )
+    if person is not None and person.email:
+        return CompetitionContact(person.name, person.email, person, CONTACT_FROM_COMPETITION)
+    return CompetitionContact(CENTRAL_OFFICE_NAME, CENTRAL_OFFICE_EMAIL, None, CONTACT_FROM_CENTRAL_OFFICE)
 
 
 def reply_to(competition):
     """Replies to every competition email go to the competition contact (Q13)."""
-    if competition.contact_email:
-        return [competition.contact_email]
-    person = contact_person(competition)
-    if person is not None and person.email:
-        return [person.email]
-    return [CENTRAL_OFFICE_EMAIL]
+    return [competition_contact(competition).email]
 
 
 def chapter_recipients(chapter, competition=None):

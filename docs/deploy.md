@@ -403,8 +403,9 @@ Each accepts a **username**, an **email**, or a **national-officer role name**
 | `DASHBOARD_MIN_CHAPTER_SIZE` | `""` | Minimum chapter size in student members (actives and PNMs). Chapters below it are flagged on the Chapter Health tab of the region and national dashboards and on My Chapters. Blank means `10`. |
 | `NME_SEMESTERS_AHEAD` | `""` | How many semesters after the current one a chapter may submit a New Member Education program for, so next semester's can be submitted while it is planned. `0` means none. Blank means `1`. |
 | `NME_SEMESTERS_BEHIND` | `""` | How many semesters before the current one a chapter may still submit a late New Member Education program for. `0` means none. Blank means `1`. |
-| `CASE_COMPETITION_MANAGERS` | `""` | Who besides Admins manages the Case Competition (status page, extensions, uploads on a chapter's behalf, judges, scores, publishing): usernames, emails or National Officer role names, one per line or comma separated. Blank means the `professional development director`. They also get the managers' email when a window closes. |
+| `CASE_COMPETITION_MANAGERS` | `""` | Who besides Admins manages the Case Competition (status page, extensions, uploads on a chapter's behalf, judges, scores, publishing): usernames, emails or National Officer role names, one per line or comma separated. Blank means the `professional development director`; while nobody holds that role, only Admins manage. They also get the managers' email when a window closes; with nobody named, it goes to the competition contact. |
 | `CASE_COMPETITION_CHAPTER_ROLES` | `""` | Chapter roles whose holders get their chapter's Case Competition emails, besides the named contacts, the five officers and the chapter's generic addresses. Comma-separated role names. Blank means `pd chair`. Grants no access. |
+| `CASE_COMPETITION_CONTACT` | `""` | Who answers Case Competition questions: replies to every competition email go here, and the competition page and the emails' footer name them. A username or email of a CMT account, a National Officer role name, or any email address (such as a shared mailbox). Overrides each competition's own contact role and contact email. Blank means the competition's contact email, else the holder of its contact role (the `professional development director`), else `central.office@thetatau.org`. The competition's admin page shows who it is now ("Contact now"). Grants no access. |
 
 ### 5.3 Feature flags (`feature_flags.json`)
 
@@ -840,10 +841,10 @@ Engineering Case Competition. Chapters register and name contacts, upload their 
 score it against the rubric, managers choose the Regional Qualifiers and publish, and the final
 round's winners are announced at Convention. All three planned releases ship together; nothing
 happens for members until an Admin ticks "Published" on the competition. Migrations:
-`competitions` 0001 to 0004 (new tables; 0002 adds the three "NECC" chapter award types when award
-types already exist; 0004 only renames a choice label) and `support` 0003 (a new digest kind). No
-new packages or environment variables. New static files: `js/competitions.js`,
-`css/competitions.css`.
+`competitions` 0001 to 0005 (new tables; 0002 adds the three "NECC" chapter award types when award
+types already exist; 0004 and 0005 only change a choice label and a help text) and `support` 0003
+(a new digest kind). No new packages or environment variables. New static files:
+`js/competitions.js`, `css/competitions.css`.
 
 Deploy by **Wednesday, December 2, 2026**: the proposal window opens Friday, December 4.
 
@@ -856,14 +857,19 @@ the production settings), then:
    once the year has started.
 2. `python manage.py load_feature_registry` (the new Case Competition area and the Regent role
    guide step).
-3. Config rows in Django admin, both optional ([§5.2](#52-setting-keys-default_configsjson)):
-   `CASE_COMPETITION_MANAGERS` (blank means the Professional Development Director) and
-   `CASE_COMPETITION_CHAPTER_ROLES` (blank means the PD Chair). Never `loaddata default_configs`
-   on production.
+3. Config rows in Django admin, all optional ([§5.2](#52-setting-keys-default_configsjson)):
+   `CASE_COMPETITION_MANAGERS` (blank means the Professional Development Director),
+   `CASE_COMPETITION_CHAPTER_ROLES` (blank means the PD Chair) and `CASE_COMPETITION_CONTACT`
+   (who gets replies; blank means the competition's contact role holder, else Central Office).
+   **While nobody holds the Professional Development Director role**, name the managers in
+   `CASE_COMPETITION_MANAGERS` (usernames or emails) and the person or mailbox for replies in
+   `CASE_COMPETITION_CONTACT`; otherwise only Admins can manage and replies go to Central Office.
+   Never `loaddata default_configs` on production.
 4. Schedule `case_competition_daily` as one daily task, in the US morning
    ([§7](#7-scheduled-tasks-pythonanywhere-daily)).
 5. In Django admin (Case Competition > Competitions), check this year's dates (every time is in
-   Eastern), attach the announcement PDF if wanted, and set the competition contact.
+   Eastern), attach the announcement PDF if wanted, and check "Contact now", which shows where
+   replies go today.
 6. Smoke test before publishing: in Django admin, "Copy to a new year" on this year's competition
    makes an unpublished copy (nothing is emailed for an unpublished competition). Add one chapter
    to the copy under "Chapters taking part", and move the copy's Proposal window so it is open

@@ -781,7 +781,7 @@ def grant_awards(round_, by, now=None):
     if not Config.feature_enabled("FEATURE_AWARDS"):
         return []
     competition = round_.competition
-    granted_by = by or services.contact_person(competition)
+    granted_by = by or services.competition_contact(competition).user
     if granted_by is None:
         logger.warning("Nobody to record as granting the Case Competition awards for %s; none recorded", round_)
         return []
