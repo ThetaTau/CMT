@@ -871,7 +871,7 @@
           "key": "case-competition-page",
           "name": "The Case Competition",
           "short_description": "This year's case, its windows and rubric, the key dates, and where your chapter stands.",
-          "long_description": "The National Engineering Case Competition, from the Activity menu. Every time is shown in Eastern time. The Your chapter panel shows whether the chapter is registered, each round's status and what is still missing, and its result once published. Past years stay listed with their case and winners.",
+          "long_description": "The National Engineering Case Competition, from the Activity menu. Every time is shown in Eastern time. The Your chapter panel shows whether the chapter is registered, each round's status and what is still missing, and its result once published. National Officers see the chapter chosen in the region bar, view only. Past years stay listed with their case and winners.",
           "url_name": "competitions:current"
         },
         {

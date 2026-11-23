@@ -8,19 +8,25 @@ The "Your chapter" panel on the competition page (NECCWI-4). Context: panel
       <h2 class="h4 card-title" id="your-chapter-title">Your chapter</h2>
       <p class="mb-0">Current members and PNMs of an active chapter register it and submit its entry.</p>
     {% else %}
-      <h2 class="h4 card-title" id="your-chapter-title">Your chapter: {{ panel.chapter.full_name }}</h2>
+      <h2 class="h4 card-title" id="your-chapter-title">{% if panel.own %}Your chapter{% else %}Chapter{% endif %}: {{ panel.chapter.full_name }}</h2>
       {% if not panel.is_member and not panel.view_only %}
         <p class="mb-0">
           Current members and PNMs of the chapter register it and submit its entry. A competition
           manager can upload for anyone else.
         </p>
       {% else %}
-        {% if panel.view_only %}
+        {% if panel.viewing_as == "css" %}
           <p class="text-body-secondary">You see this chapter as its Chapter Support Specialist, view only.</p>
+        {% elif panel.viewing_as == "national" %}
+          <p class="text-body-secondary">
+            You see this chapter's progress, view only: only its members register it and submit its entries.
+            {% if panel.region_bar %}Choose another chapter in the region bar.{% endif %}
+          </p>
         {% endif %}
         {% if panel.registered %}
           <p>
             <span class="badge text-bg-success">Registered</span>
+            <span class="small text-body-secondary">({{ panel.participant.get_source_display }}, {{ panel.participant.created|date:"M j, Y" }})</span>
             Main contacts:
             {% for person in panel.participant.contacts.all %}{{ person.name }}{% if not forloop.last %}, {% endif %}{% empty %}None named yet{% endfor %}.
             {% if panel.can_update %}

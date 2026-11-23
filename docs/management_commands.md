@@ -37,7 +37,10 @@ Schedule this daily. A ballot is only emailed on days that are an exact multiple
 of 7 from when it opened, so the ladder lands on the right day whatever weekday
 the ballot was created on, plus one final reminder on the due date itself.
 Voting closes at 5pm Pacific on the due date, after which the ballot stops
-appearing as open and no further reminders go out.
+appearing as open and no further reminders go out. So the task must run between
+07:00 UTC (midnight on the site's Phoenix clock) and that close, ideally in the US
+morning; a run after the close skips the due-date reminder
+([deploy.md §7.2](deploy.md#72-timing-rules)).
 
     python manage.py ballot_reminders --dry-run
     python manage.py ballot_reminders

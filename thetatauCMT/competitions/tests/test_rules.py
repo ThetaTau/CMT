@@ -112,7 +112,7 @@ class TestMembership:
         officer.refresh_from_db()
         assert officer.current_chapter == chapter
         assert not services.is_chapter_member(officer, chapter)
-        assert services.panel_chapter(officer) == other_chapter
+        assert services.panel_chapter(officer) == chapter
 
 
 class TestRegistering:

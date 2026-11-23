@@ -492,42 +492,86 @@ After the first superuser exists, add the Google provider in Django admin
 PythonAnywhere only offers **daily** scheduled tasks, so commands that should run
 weekly/monthly **self-gate internally** (day-of-week / day-of-month). Schedule
 them daily and let them decide. Use `--dry-run` / `--override` for testing only —
-**never** wire those flags into the live schedule.
+**never** wire those flags into the live schedule. The one exception is
+`set_current_status_roles -override`: that command has a built-in Tuesday gate, and the
+flag is what makes it run every day.
 
-| Command | Effective cadence | Purpose |
+### 7.1 Live schedule
+
+The PythonAnywhere **Tasks** page as of 2026-11-23; update this table when a task or a
+time changes. Times are **UTC**, the clock the Tasks page uses. Phoenix is the site's
+time zone (`America/Phoenix`, UTC-7 all year, no daylight saving). US Eastern is UTC-5 in
+winter and UTC-4 in summer; Pacific is UTC-8 and UTC-7.
+
+Each `manage.py` task runs as
+`source virtualenvwrapper.sh && workon thetatauCMT-313 && python manage.py <command>`.
+
+| UTC | Phoenix | Command | Runs / sends | Purpose |
+|---|---|---|---|---|
+| 03:30 | 8:30 pm, previous day | `ballot_reminders` | per ballot: every 7 days, and on the due date | Re-sends an open ballot to whoever has not voted, widening the chapter copy list at day 14 (all officers) and day 21 (chapter roles + Regional Director). Voting closes 5pm Pacific on the due date. ⚠ At 03:30 UTC that day's ballots have already closed, so the due-date reminder is never sent ([§7.2](#72-timing-rules)). |
+| 07:00 | 12:00 am | `sync_quickbooks -live` | daily | Finances sync: chapter balances and invoices from QuickBooks, paid pledge/initiation invoice steps completed, and each chapter's QuickBooks billing email set from its current officers. Without `-live` the balances and emails are only printed. |
+| 07:48 | 12:48 am | `weekly_contact_sync` | pushes **Thu** | Push auto-sync-enrolled contact lists (`--weekday 3`). |
+| 08:00 | 1:00 am | `./thetatauCMT/backup.sh <passphrase>` | daily | Not a `manage.py` command; runs from the home directory. Encrypted backup, restore test and Google Cloud copy ([§9](#9-backups--tested-restore)). The argument is the backup encryption passphrase; never commit it. |
+| 11:00 | 4:00 am | `sync_trainings` | daily | Vector LMS and Open edX progress sync. |
+| 12:00 | 5:00 am | `sync_guardian` | syncs **Tue** | Push the active member roster to the Guardian Conduct System (needs `GUARDIAN_EMAIL`/`GUARDIAN_PASSWORD`, [§3.10](#310-other-integrations--people)). |
+| 12:30 | 5:30 am | `chapter_pledges_check` | sends **Mon** | Warn chapter e-board of pledges not initiated after 6 months. |
+| 12:37 | 5:37 am | `region_officer_reminder_digest` | sends **Mon** | Weekly RD officer digest (`--weekday 0`). |
+| 12:40 | 5:40 am | `set_current_status_roles -override` | daily | Recompute members' current status/roles, and the officer and national officer groups, as role and status dates start and end. `-override` is required (see above). ⚠ Runs after `sync_quickbooks`, `weekly_contact_sync`, `sync_guardian` and `chapter_pledges_check`, which read these fields, so they use the previous day's values ([§7.2](#72-timing-rules)). |
+| 12:44 | 5:44 am | `member_update_process` | daily | Continue parked Member Update Process tasks 7 days after submission. |
+| 12:45 | 5:45 am | `send_css_digests` | daily; monthly digest on the **1st** | Chapter Support Specialists' digests, one task. Every run sends the daily digest: the Regent emails that reach them only by digest, in full, plus a list of the time-sensitive ones they already got on CC (nothing to anyone with nothing new). On the 1st it also sends the monthly digest: each chapter's open items and last month's emails. Running it again sends nothing twice. If the run on the 1st is missed, run `send_css_digests --period monthly --override` by hand; nobody gets the monthly digest twice. |
+| 13:15 | 6:15 am | `score_calculate_extras` | daily | Recompute the biennium's command-computed chapter scores (pledge ratio, membership, service hours, GPA, societies) and refresh the event and submission score types. |
+| 13:20 | 6:20 am | `badge_pnm_notify` | daily | Email each PNM the badge information once, 4 weeks after their PNM status starts. |
+| 13:21 | 6:21 am | `nomination_follow_up` | daily | Re-contact volunteer nominees per `follow_up_interval_months`. |
+| 13:30 | 6:30 am | `update_shingle_contacts` | daily | Rewrite the Chapters sheet of the Shingle order form (Google Sheet) with each chapter's address, status, contact and officer emails; "Notify" also lists its Chapter Support Specialists. |
+| 13:30 | 6:30 am | `officer_update_reminder_email` | daily | Chapter officer-update reminders. |
+| 13:30 | 6:30 am | `job_search_notify` | daily; weekly digest **Wed** | Job Board saved-search alerts (`--frequency both` is the default; `--weekday 2`). |
+| 13:45 | 6:45 am | `remind_workflow_tasks` | daily | Viewflow task reminders. |
+| 15:00 | 8:00 am | `grad_anniversary_email` | sends **May 1** and **Dec 1** | Graduation-anniversary emails (respects unsubscribes). |
+| 17:22 | 10:22 am | `case_competition_daily` | daily | Everything scheduled for the Case Competition, one task: reminders to chapters taking part that have not finished their entry (before a window opens, when it opens, and 3, 1 and 0 days before it closes; the final round reaches only the Regional Qualifiers), the managers' summary after a window closes, the judges' "judging is open" email and their reminders before the judging deadline, and judging assignments for entries whose extension has ended. Each email goes once; a missed day never replays old steps. `--dry-run` lists what it would send. ⚠ Runs after `send_css_digests`, and its Chapter Support Specialist copies are digest only, so they reach them a day later ([§7.2](#72-timing-rules)). |
+| 17:37 | 10:37 am | `chapter_founding_day_email` | daily | Chapter founding-anniversary emails to initiated members. |
+| 19:00 | 12:00 pm | `discipline_tasks` | daily | Disciplinary-process follow-ups. |
+| 21:11 | 2:11 pm | `prune_acknowledgements` | daily | Prune stale guides/What's New acknowledgement rows (`--days`, default 365). |
+
+Every `manage.py` command in this section is idempotent and safe to run daily.
+
+### 7.2 Timing rules
+
+- **The site's day starts at 07:00 UTC** (midnight in Phoenix). Every weekday and
+  day-of-month gate, "due today" check and date cutoff reads the Phoenix date, so a task
+  that runs before 07:00 UTC acts on the previous day.
+- **`ballot_reminders` runs between 07:00 UTC and the 5pm Pacific close** (00:00 UTC in
+  summer, 01:00 UTC in winter). Any later and that day's ballots have closed, so the
+  due-date reminder never goes out.
+- **`set_current_status_roles -override` runs before every task that reads members'
+  current status or roles:** `sync_quickbooks`, `weekly_contact_sync`, `sync_guardian`,
+  `chapter_pledges_check` and `update_shingle_contacts`, plus `monthly_chapter_officer_email`
+  and `enroll_all_ed` when they run. The site's officer and national officer permissions
+  come from the same fields, so shortly after 07:00 UTC is best.
+- **`send_css_digests` runs after the emails it reports on.** The daily digest takes every
+  Chapter Support Specialist copy made before it runs; later ones wait a day. The copies
+  from `chapter_pledges_check`, `case_competition_daily` and `monthly_chapter_officer_email`
+  exist only in the digest. Ballot, officer-update, workflow-escalation and disciplinary
+  emails CC the specialists as they are sent (`CSS_REALTIME_EMAILS`), so for those only
+  the digest line waits.
+- **Morning emails go out at about 12:00 to 15:00 UTC**, before the workday across the US
+  (5 to 8 am Phoenix, 7 to 10 am Eastern in winter). Heavy jobs that send nothing fit
+  07:00 to 12:00 UTC (midnight to 5 am Phoenix).
+
+### 7.3 Not on the Tasks page
+
+These commands gate themselves like the ones above but are not on the Tasks page as of
+2026-11-23. Schedule one if its feature is in use.
+
+| Command | Runs / sends | Purpose |
 |---|---|---|
-| `task_dates --current-year` | daily | Ensure current academic-year task dates exist. |
-| `archive_old_task_dates` | daily | Retire stale `TaskDate` rows. |
-| `prune_acknowledgements` | daily | Prune stale guides/What's New acknowledgement rows (`--days`, default 365). |
-| `set_current_status_roles` | daily | Recompute members' current status/roles. |
-| `member_update_process` | daily | Continue parked Member Update Process tasks 7 days after submission. |
-| `officer_update_reminder_email` | daily | Chapter officer-update reminders. |
-| `region_officer_reminder_digest` | daily → sends **Mon** | Weekly RD officer digest (`--weekday 0`). |
-| `ballot_reminders` | daily → per-ballot 7 day ladder | Re-sends an open ballot every 7 days to whoever has not voted, widening the chapter copy list at day 14 (all officers) and day 21 (chapter roles + Regional Director), plus a final reminder on the due date. Voting closes 5pm Pacific on the due date. |
-| `monthly_chapter_officer_email` | daily → sends **1st** | Monthly per-region chapter health dashboard. |
-| `grad_anniversary_email` | daily | Graduation-anniversary emails (respects unsubscribes). |
-| `chapter_founding_day_email` | daily | Chapter founding-anniversary emails to initiated members. |
-| `chapter_pledges_check` | daily → sends **Mon** | Warn chapter e-board of pledges not initiated after 6 months. |
-| `award_digest` | daily → sends **1st** | Monthly award-grant digest. |
-| `nomination_follow_up` | daily | Re-contact volunteer nominees per `follow_up_interval_months`. |
-| `ballot_reminders` | daily | 7 day reminder ladder for unreturned open ballots (widens the CC list as it ages). |
-| `job_search_notify --frequency both` | daily → weekly digest sends **Wed** | Job Board saved-search alerts (daily digest every run, `--weekday 2`). |
-| `weekly_contact_sync` | daily → pushes **Thu** | Push auto-sync-enrolled contact lists (`--weekday 3`). |
-| `remind_workflow_tasks` | daily | Viewflow task reminders. |
-| `discipline_tasks` | daily | Disciplinary-process follow-ups. |
-| `badge_pnm_notify` | daily | Badge/PNM notifications. |
-| `sync_trainings` / `enroll_all_ed` | daily | Open edX progress sync, and the Open edX course rules (**Trainings > Open edX courses**) applied to every current member, PNM, national officer and role holder they cover. |
-| `sync_guardian` | daily → syncs **Tue** | Push the active member roster to the Guardian Conduct System (needs `GUARDIAN_EMAIL`/`GUARDIAN_PASSWORD`, [§3.10](#310-other-integrations--people)). |
-| `sync_quickbooks` | daily | Finances sync. |
+| `monthly_chapter_officer_email` | sends **1st** | Monthly officer email to every chapter, the Regional Directors' monthly chapter health dashboard (`RDMonthly`), and from October to April a low-roster alert (30 actives or fewer) to National Council. |
+| `award_digest` | sends **1st** | Monthly award-grant digest for the previous month. |
 | `generate_transition_obligations` | daily | Create/refresh Transition Report obligations from officer term ends (looks back 365 days, ahead 45 by default, derived from the [§5.4](#54-transition-reports-keys) offsets) and mark past-due ones `missed`. Officers can also press **Start report** on `/transitions/` before their report is assigned; that creates the same obligation, which this command then reuses. Schedule it before the two below. First-run steps: [§8.1](#81-upgrading-into-the-transition-reports-release-october-2026). |
 | `send_transition_report_reminders` | daily | Due-date reminder ladder (`TRANSITIONS_REMINDER_OFFSETS_DAYS`) plus the once-per-semester broadcast. **Do the first-run baseline in [§8.1](#81-upgrading-into-the-transition-reports-release-october-2026) before scheduling it.** |
 | `send_transition_handoff_notices` | daily | Tells a new officeholder their predecessors' reports are available (sent only when a report exists). |
-| `send_css_digests` | daily, mornings → monthly digest on the **1st** | Chapter Support Specialists' digests, one task. Every run sends the daily digest: the Regent emails that reach them only by digest, in full, plus a list of the time-sensitive ones they already got on CC (nothing to anyone with nothing new). On the 1st it also sends the monthly digest: each chapter's open items and last month's emails. Running it again sends nothing twice. If the run on the 1st is missed, run `send_css_digests --period monthly --override` by hand; nobody gets the monthly digest twice. |
-| `case_competition_daily` | daily, US mornings | Everything scheduled for the Case Competition, one task: reminders to chapters taking part that have not finished their entry (before a window opens, when it opens, and 3, 1 and 0 days before it closes; the final round reaches only the Regional Qualifiers), the managers' summary after a window closes, the judges' "judging is open" email and their reminders before the judging deadline, and judging assignments for entries whose extension has ended. Each email goes once; a missed day never replays old steps. `--dry-run` lists what it would send. |
-
-> This is the deployment-relevant set; confirm the exact crontab against the live
-> PythonAnywhere **Tasks** page. Every command above is idempotent and safe to
-> run daily.
+| `task_dates --current-year` | daily; adds the new academic year's dates from July 1 | Ensure current academic-year task dates exist. By hand instead: `task_dates` (no flag) run before July adds the coming academic year. |
+| `archive_old_task_dates` | daily; archives once a year | Retire `TaskDate` rows due before the current academic year. |
+| `enroll_all_ed` | every run calls Open edX for each qualifying member | Backfill of the Open edX course rules (**Trainings > Open edX courses**) for every current member, PNM, national officer and role holder they cover. The rules already apply when a PNM form, officer or national officer is added, so this is usually run by hand after adding or changing a rule. |
 
 ---
 
@@ -908,6 +952,13 @@ python manage.py listbackups    # list available backups
 # Point DATABASE_URL at a scratch DB, then:
 python manage.py dbrestore      # restore latest; sanity-check row counts / a login
 ```
+
+The daily task (08:00 UTC, [§7.1](#71-live-schedule)) runs
+`./thetatauCMT/backup.sh <passphrase>`, where the argument is the backup encryption
+passphrase. It writes an encrypted backup to disk, restores it into the staging site's
+database (the `testCMT-313` virtualenv), de-identifies that copy and backs it up, then
+sends an encrypted backup to Google Cloud. A second argument of `false` skips the
+restore.
 
 Record the date of the last successful **restore test** in the deploy log.
 

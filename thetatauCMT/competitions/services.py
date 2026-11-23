@@ -329,19 +329,15 @@ def member_chapter(user):
 
 
 def panel_chapter(user):
-    """The chapter the "Your chapter" panel shows.
+    """The chapter the "Your chapter" panel shows: the one the viewer is looking at.
 
-    A Chapter Support Specialist standing in sees the assigned chapter they are viewing, view
-    only (S21); everyone else sees their own chapter. A National Officer using the region bar
-    stays with their own chapter (S29).
+    Their own chapter; for a Chapter Support Specialist standing in, the assigned chapter they
+    are viewing (S21); for a National Officer, the chapter chosen in the region bar, like every
+    other page (owner, 2026-11-23). Looking at a chapter never makes anyone a member (S29).
     """
-    from thetatauCMT.support.services import standing_in
-
     if not is_signed_in(user):
         return None
-    if standing_in(user):
-        return user.current_chapter
-    return user.chapter
+    return user.current_chapter
 
 
 def supports(user, chapter):
@@ -799,6 +795,11 @@ class ChapterPanel:
     chapter: object
     is_member: bool
     view_only: bool
+    # Why a non-member sees the chapter's progress: as its CSS (VIEWING_AS_CSS) or as someone who
+    # sees every chapter's status (VIEWING_AS_NATIONAL); empty for members and everyone else.
+    viewing_as: str = ""
+    own: bool = True
+    region_bar: bool = False
     participant: object = None
     registered: bool = False
     withdrawn: bool = False
@@ -810,11 +811,16 @@ class ChapterPanel:
     rounds: list = field(default_factory=list)
 
 
+VIEWING_AS_CSS, VIEWING_AS_NATIONAL = "css", "national"
+
+
 def chapter_panel(user, competition, now=None):
     """What the "Your chapter" panel shows; None when the viewer has no active chapter.
 
-    A member of the chapter gets its state and buttons; a CSS standing in sees the same,
-    view only (S21); anyone else (an alumnus, an advisor) gets the panel without them.
+    A member of the chapter gets its state and buttons. A CSS standing in, and anyone who sees
+    every chapter's status (National Officers through the region bar, S19), see the same view
+    only, opening an entry only where :func:`can_view_entry` allows (S29). Anyone else (an
+    alumnus, an advisor) gets the panel without them.
     """
     from .judging import result_label
 
@@ -823,9 +829,20 @@ def chapter_panel(user, competition, now=None):
     if chapter is None or not chapter.active:
         return None
     is_member = is_chapter_member(user, chapter)
-    view_only = not is_member and supports(user, chapter)
-    panel = ChapterPanel(chapter=chapter, is_member=is_member, view_only=view_only)
-    if not (is_member or view_only):
+    viewing_as = ""
+    if not is_member and supports(user, chapter):
+        viewing_as = VIEWING_AS_CSS
+    elif not is_member and can_view_status(user):
+        viewing_as = VIEWING_AS_NATIONAL
+    panel = ChapterPanel(
+        chapter=chapter,
+        is_member=is_member,
+        view_only=bool(viewing_as),
+        viewing_as=viewing_as,
+        own=chapter.pk == user.chapter_id,
+        region_bar=user.in_national_officer_group,
+    )
+    if not (is_member or panel.view_only):
         return panel
     participant = participant_for(competition, chapter)
     panel.participant = participant
@@ -857,7 +874,9 @@ def chapter_panel(user, competition, now=None):
                 status_label=ENTRY_STATUS_LABELS[status],
                 missing=missing_items(entry, round_) if may_enter else [],
                 can_submit=can_submit(user, round_, chapter, now),
-                can_view=entry is not None and status in STARTED_STATUSES,
+                can_view=(
+                    entry is not None and status in STARTED_STATUSES and (is_member or can_view_entry(user, entry, now))
+                ),
                 result=result_label(entry) if entry is not None else None,
                 not_selected=not_selected(round_, earlier_entry, may_enter),
             )

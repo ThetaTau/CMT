@@ -167,18 +167,35 @@ class TestYourChapterPanel:
         assert "Current members and PNMs of the chapter register it" in page
         assert "Start the entry" not in page and "Register the chapter" not in page
 
-    def test_a_national_officer_using_the_region_bar_keeps_their_own_chapter(
+    def test_a_national_officer_sees_the_chapter_chosen_in_the_region_bar(
         self, login, chapter, other_chapter, round_, freezer
     ):
+        """Owner, 2026-11-23: its registration and each round's status, view only, like every other page."""
         from thetatauCMT.users.models import UserAlter
 
         officer = national_officer(chapter=other_chapter)
         UserAlter.objects.update_or_create(user=officer, defaults={"chapter": chapter})
         ParticipantFactory(competition=round_.competition, chapter=chapter)
+        EntryFactory(round=round_, chapter=chapter, title="Solar", summary="")
         freezer.move_to(WINDOW_OPEN)
         page = login(officer).get(detail_url(round_.competition)).content.decode()
-        assert f"Your chapter: {other_chapter.full_name}" in page
-        assert "Start the entry" not in page
+        assert f"Chapter: {chapter.full_name}" in page and "Registered" in page and "In progress" in page
+        assert "Choose another chapter in the region bar." in page
+        # Only the chapter's members act for it, and its entry stays private until results (S29).
+        assert "Edit the entry" not in page and "Start the entry" not in page and "View the entry" not in page
+
+    def test_a_css_sees_an_assigned_chapter_view_only(self, login, chapter, round_, freezer):
+        from thetatauCMT.support.services import clear_css_state
+
+        ParticipantFactory(competition=round_.competition, chapter=chapter)
+        entry = EntryFactory(round=round_, chapter=chapter, title="Solar", summary="")
+        freezer.move_to(WINDOW_OPEN)
+        css = make_css()
+        ChapterSupportAssignmentFactory(user=css, chapter=chapter)
+        clear_css_state(css)
+        page = login(css).get(detail_url(round_.competition)).content.decode()
+        assert f"Chapter: {chapter.full_name}" in page and "as its Chapter Support Specialist, view only" in page
+        assert reverse("competitions:entry", args=[entry.public_id]) in page and "Edit the entry" not in page
 
 
 class TestHomeCard:

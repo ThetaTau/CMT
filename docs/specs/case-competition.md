@@ -2,13 +2,13 @@
 
 **Status (2026-11-23):** Every question is answered (Q1 to Q27, in the
 [Decisions log](#decisions-log)) and **every work item is built and tested**, Releases 1 to 3
-together: NECCWI-1 to 14. The app has 181 tests of its own; the full suite passes. Nothing
+together: NECCWI-1 to 14. The app has 182 tests of its own; the full suite passes. Nothing
 reaches members until an Admin ticks "Published" on this year's competition. **Next: deploy by
 Wednesday, December 2** with [deploy.md §8.4](../deploy.md#84-upgrading-into-the-case-competition-release);
 the proposal window opens on **Friday, December 4**. Build-time decisions you may want to check
 are S33 to S38 in [Smaller defaults](#smaller-defaults-no-answer-needed-unless-you-disagree).
 
-**Your changes after the build (2026-11-20 to 23)** are done: Feedback 1 to 7 in the
+**Your changes after the build (2026-11-20 to 23)** are done: Feedback 1 to 8 in the
 [Decisions log](#decisions-log). To see judging, build the demo at the judging stage
 (`seed_case_competition_demo --stage judging --judge <your email>`) and sign in as a demo judge
 (NECCWI-8). A judge with scorecards to submit sees a counted scales icon at the top of every
@@ -150,7 +150,8 @@ this table allows; anyone who is given the link can still open it (Q11 B).
 
 A Chapter Support Specialist viewing an assigned chapter sees what that chapter's Regent sees,
 and can submit nothing (S21). A National Officer viewing a chapter through the region bar does
-not become a member of it (S29).
+not become a member of it (S29); the competition page shows them that chapter's progress, view
+only.
 
 ## Questions for review
 
@@ -663,7 +664,9 @@ accounts can open Django admin.
   statuses) and its PNMs, by their own chapter. Alumni and other statuses cannot submit; a
   manager can upload for them (S7). A National Officer viewing a chapter through the region bar
   does not become a member of it, so before results they see only whether it has submitted
-  (S19).
+  (S19). The competition page's chapter panel follows the region bar, as every other page does
+  (Feedback 8): the chapter's registration and each round's status, view only, opening an entry
+  only where the permission matrix allows.
 - **S30.** *(Added for Q9.)* Chapters an Admin adds in Django admin get no email at that moment.
   The next daily run sends them the reminder due that day: before December 4, "the window opens
   on Friday" (E2); from December 4, "the window is open" (E3). Those emails say the chapter is
@@ -1290,7 +1293,8 @@ Build:
   window (in Eastern) and rubric. A "Your chapter" panel (`id="your-chapter"`) for the viewer's
   `current_chapter`: registered or not (with the intent button while open), each round's status
   and checklist (with Submit or Edit for members of the chapter, S29), and the result once
-  published (NECCWI-12). Managers get a Manage button.
+  published (NECCWI-12). A CSS standing in and a National Officer (the chapter chosen in the
+  region bar, Feedback 8) see it view only. Managers get a Manage button.
 - The "Case Competition" menu item in the Activity menu (S24), from one cached query per request
   (Gotchas 11).
 - The home page card, from `HomeView.get_context_data` (S24).
@@ -1672,6 +1676,7 @@ follow-up they caused.
 | Feedback 5 | "It is not clear where to go to judge my assigned chapters"; judges should get a notification bubble like other to-dos. | 2026-11-21 | S24 rewritten: the ballots pattern for judges (a counted scales icon at the top of every page and a reminder at the top of the home page, replacing the judge line on the home card), "My Judging" with the count in the Activity and account menus, a "where you stand" note per round on the competition page, and "Score this entry" (or "Finish your scorecard") on an entry's page. Only judges pay for the count: everyone else stops at the one query that already decides the menu link. |
 | Feedback 6 | On the scores page the Decision and Eligible columns are hard to see; put the criterion columns and the spread in a sub-row that opens when needed. | 2026-11-23 | NECCWI-11: each entry's row keeps the rank, scorecards, average, decision and eligibility; a chevron opens a row under it with each criterion's average (full names), the spread and the scorecards, which moved there from the entry cell. "Open every entry" and "Close every entry" do all of them, and the browser remembers "open" across the reload after each save. The table now fits a 1,000-pixel-wide screen. |
 | Feedback 7 | Roles are often vacant (no Professional Development Director now): who gets the emails and the footer then? A Config should override who gets replies. | 2026-11-23 | Before: only Admins managed, and replies, the footer and the managers' email fell back to Central Office. Now S38: the new `CASE_COMPETITION_CONTACT` setting decides the contact ahead of the competition's own contact role and email, the managers' email follows it when nobody is named a manager, and the competition's admin page shows "Contact now". `CASE_COMPETITION_MANAGERS` still decides who manages; it accepts usernames and emails, so name people there while the role is vacant (migration 0005 only changes a help text). |
+| Feedback 8 | As a National Officer, the competition page should follow the chapter chosen in the region bar and show its status for each form (intent, proposal, final), not always my own chapter. | 2026-11-23 | S29 and NECCWI-4: the chapter panel shows the region bar's chapter (`current_chapter`), headed "Chapter" rather than "Your chapter" when it is not the viewer's own: its registration with how and when it registered, and each round's status, view only. Anyone who sees every chapter's status (S19) gets this; "View the entry" appears only where the permission matrix allows, so a National Officer opens a chapter's entry only once it is showcased after results. |
 
 ## Gotchas for the build
 
