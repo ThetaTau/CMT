@@ -332,6 +332,7 @@ python manage.py loaddata keywords           # jobs/fixtures/keywords.json
 | `award_types` | 30 | The Awards catalog (`AwardType`). The Awards feature is **non-functional without it** (no award types to nominate/grant). | Fixed pks 1–30 → re-load overwrites those rows in place (safe/idempotent). |
 | `award_eligibility_rules` | 51 | Baseline `EligibilityRule` rows for the 30 award types (recipient-kind guard per award, plus member-status filters). Without them every award is open to every member. Requires `award_types` first (the fixture links rules to awards **by award name**, via natural keys). | `"pk": null` + natural key `(award name, rule_type, member_status, hook_key)` → re-load updates the matching row in place instead of duplicating, and never clobbers rules natoffs added in the admin. |
 | `keywords` | ~1000 | Job Board keyword autocomplete. | Fixed pks → re-load overwrites in place. |
+| `necc_2026_2027` | 28 | This year's National Engineering Case Competition setup: the competition (unpublished), its key dates, both rounds, their rubrics and the files they collect ([§8.4](#84-upgrading-into-the-case-competition-release)). **Load it once**, right after the migration; afterwards the setup is edited in Django admin. | Fixed pks (competition 1) → loading it again puts this year's setup back to the fixture's values, undoing edits made in Django admin. Never re-load it once the year has started. |
 
 > **Fixture idempotency note.** `feature_flags` uses `"pk": null` (auto id) so it
 > is **not** idempotent: re-running duplicates rows. That is harmless only on a
@@ -349,7 +350,8 @@ These generate throwaway sample data and are guarded by `core.seed_guard`
 wire any of them into a scheduled task:
 `seed_awards_demo`, `seed_rollbook_qa`, `seed_contact_sync_examples`,
 `seed_dashboard_data`, `seed_pending_national_events`,
-`seed_transition_reports_demo`, `seed_big_little_demo`, `seed_css_demo`.
+`seed_transition_reports_demo`, `seed_big_little_demo`, `seed_css_demo`,
+`seed_case_competition_demo`.
 
 The exception is `seed_transition_prompt_set` and `seed_transition_tags`: they
 load real production data and are meant to be run once
@@ -401,6 +403,8 @@ Each accepts a **username**, an **email**, or a **national-officer role name**
 | `DASHBOARD_MIN_CHAPTER_SIZE` | `""` | Minimum chapter size in student members (actives and PNMs). Chapters below it are flagged on the Chapter Health tab of the region and national dashboards and on My Chapters. Blank means `10`. |
 | `NME_SEMESTERS_AHEAD` | `""` | How many semesters after the current one a chapter may submit a New Member Education program for, so next semester's can be submitted while it is planned. `0` means none. Blank means `1`. |
 | `NME_SEMESTERS_BEHIND` | `""` | How many semesters before the current one a chapter may still submit a late New Member Education program for. `0` means none. Blank means `1`. |
+| `CASE_COMPETITION_MANAGERS` | `""` | Who besides Admins manages the Case Competition (status page, extensions, uploads on a chapter's behalf, judges, scores, publishing): usernames, emails or National Officer role names, one per line or comma separated. Blank means the `professional development director`. They also get the managers' email when a window closes. |
+| `CASE_COMPETITION_CHAPTER_ROLES` | `""` | Chapter roles whose holders get their chapter's Case Competition emails, besides the named contacts, the five officers and the chapter's generic addresses. Comma-separated role names. Blank means `pd chair`. Grants no access. |
 
 ### 5.3 Feature flags (`feature_flags.json`)
 
@@ -518,6 +522,7 @@ them daily and let them decide. Use `--dry-run` / `--override` for testing only 
 | `send_transition_report_reminders` | daily | Due-date reminder ladder (`TRANSITIONS_REMINDER_OFFSETS_DAYS`) plus the once-per-semester broadcast. **Do the first-run baseline in [§8.1](#81-upgrading-into-the-transition-reports-release-october-2026) before scheduling it.** |
 | `send_transition_handoff_notices` | daily | Tells a new officeholder their predecessors' reports are available (sent only when a report exists). |
 | `send_css_digests` | daily, mornings → monthly digest on the **1st** | Chapter Support Specialists' digests, one task. Every run sends the daily digest: the Regent emails that reach them only by digest, in full, plus a list of the time-sensitive ones they already got on CC (nothing to anyone with nothing new). On the 1st it also sends the monthly digest: each chapter's open items and last month's emails. Running it again sends nothing twice. If the run on the 1st is missed, run `send_css_digests --period monthly --override` by hand; nobody gets the monthly digest twice. |
+| `case_competition_daily` | daily, US mornings | Everything scheduled for the Case Competition, one task: reminders to chapters taking part that have not finished their entry (before a window opens, when it opens, and 3, 1 and 0 days before it closes; the final round reaches only the Regional Qualifiers), the managers' summary after a window closes, the judges' "judging is open" email and their reminders before the judging deadline, and judging assignments for entries whose extension has ended. Each email goes once; a missed day never replays old steps. `--dry-run` lists what it would send. |
 
 > This is the deployment-relevant set; confirm the exact crontab against the live
 > PythonAnywhere **Tasks** page. Every command above is idempotent and safe to
@@ -827,6 +832,61 @@ first welcome emails no longer work (they expire after 3 days anyway). In the ra
 address is already verified on another account, or the lowercase username is taken, the
 migration leaves that part alone and names the account in the `migrate` output; sort it out in
 Django admin (Users, and Accounts > Email addresses).
+
+### 8.4 Upgrading into the Case Competition release
+
+First release of the `competitions` app (spec: `docs/specs/case-competition.md`): the National
+Engineering Case Competition. Chapters register and name contacts, upload their proposal, judges
+score it against the rubric, managers choose the Regional Qualifiers and publish, and the final
+round's winners are announced at Convention. All three planned releases ship together; nothing
+happens for members until an Admin ticks "Published" on the competition. Migrations:
+`competitions` 0001 to 0004 (new tables; 0002 adds the three "NECC" chapter award types when award
+types already exist; 0004 only renames a choice label) and `support` 0003 (a new digest kind). No
+new packages or environment variables. New static files: `js/competitions.js`,
+`css/competitions.css`.
+
+Deploy by **Wednesday, December 2, 2026**: the proposal window opens Friday, December 4.
+
+Run the standard flow in [§8](#8-updating-an-existing-deploy) (its `collectstatic` must run with
+the production settings), then:
+
+1. `python manage.py loaddata necc_2026_2027`, **once**, right after `migrate`
+   ([§4.1](#41-fixtures-not-loaded-by-dbseed-load-manually)). It loads this year's competition,
+   unpublished, with its key dates, both rounds, rubrics and files to collect. Never load it again
+   once the year has started.
+2. `python manage.py load_feature_registry` (the new Case Competition area and the Regent role
+   guide step).
+3. Config rows in Django admin, both optional ([§5.2](#52-setting-keys-default_configsjson)):
+   `CASE_COMPETITION_MANAGERS` (blank means the Professional Development Director) and
+   `CASE_COMPETITION_CHAPTER_ROLES` (blank means the PD Chair). Never `loaddata default_configs`
+   on production.
+4. Schedule `case_competition_daily` as one daily task, in the US morning
+   ([§7](#7-scheduled-tasks-pythonanywhere-daily)).
+5. In Django admin (Case Competition > Competitions), check this year's dates (every time is in
+   Eastern), attach the announcement PDF if wanted, and set the competition contact.
+6. Smoke test before publishing: in Django admin, "Copy to a new year" on this year's competition
+   makes an unpublished copy (nothing is emailed for an unpublished competition). Add one chapter
+   to the copy under "Chapters taking part", and move the copy's Proposal window so it is open
+   now. As an Admin, open the copy's status page and use "Upload on behalf" for that chapter: upload
+   a PDF of about 40 MB, then replace it with a PowerPoint, **leaving the summary empty** so the
+   entry stays incomplete and no receipt reaches the chapter. Open both files from the entry page
+   (the replaced one is listed for managers). Large uploads must
+   reach Google Cloud Storage within one request; lower the round's size limit if they struggle.
+   Then delete the copy in Django admin (its entries and files go with it).
+7. Add this year's chapters on the competition's page in Django admin ("Chapters taking part").
+   They get no email then; the next daily run sends each one the reminder due that day.
+8. Tick "Published". The competition appears in the Activity menu, on the home page of members
+   whose chapter has something to do, and in the National menu for National Officers.
+9. Before judging starts (the window closes December 11), add the judges: the competition page >
+   Proposal > Judges. Judging opens, and each judge is emailed, the first daily run after the
+   close.
+10. Rollback: `git checkout <previous sha>` and reload. The new tables are harmless to the older
+    code; the scheduled task must be paused, since the command no longer exists.
+
+Publishing a round's results (the scores page) emails every chapter with an entry and records the
+Regional Qualifier awards, once; announcing the winners does the same for the final round. To
+change a decision afterwards, an Admin clears "Results published" on the round in Django admin;
+emails and awards already sent stay sent.
 
 ---
 

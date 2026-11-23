@@ -245,7 +245,7 @@
     "fields": {
         "key": "CSS_REALTIME_EMAILS",
         "value": "",
-        "description": "Chapter Support Specialists: the chapter emails they get on CC as sent; every other one reaches them only in the daily digest. Kind codes, one per line or comma separated: officer_monthly, dues, workflow_update, workflow_escalation, award, nme_revision, bylaws, ballot, ballot_receipt, ballot_vote_removed, expulsion, disciplinary, officer_update, pnm_initiation, transition_past_due. 'none' sends everything through the digest. Blank means workflow_escalation, ballot, ballot_receipt, ballot_vote_removed, expulsion, disciplinary, officer_update and transition_past_due.",
+        "description": "Chapter Support Specialists: the chapter emails they get on CC as sent; every other one reaches them only in the daily digest. Kind codes, one per line or comma separated: officer_monthly, dues, workflow_update, workflow_escalation, award, nme_revision, bylaws, ballot, ballot_receipt, ballot_vote_removed, expulsion, disciplinary, officer_update, pnm_initiation, transition_past_due, case_competition. 'none' sends everything through the digest. Blank means workflow_escalation, ballot, ballot_receipt, ballot_vote_removed, expulsion, disciplinary, officer_update and transition_past_due.",
         "modified": "2026-10-22T00:00:00Z"
     }
 },
@@ -287,6 +287,26 @@
         "value": "",
         "description": "New Member Education programs: how many semesters before the current one a chapter may still submit a late program for. A whole number; 0 means none; blank means 1.",
         "modified": "2026-11-18T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "CASE_COMPETITION_MANAGERS",
+        "value": "",
+        "description": "Case Competition: who besides Admins manages the competition: sees every chapter's entry and every score, chooses the judges and the qualifiers, publishes the results, announces the winners, gives extensions and uploads on a chapter's behalf. Usernames, emails or National Officer role names (for example: professional development director), one per line or comma separated. Blank means the Professional Development Director.",
+        "modified": "2026-11-20T00:00:00Z"
+    }
+},
+{
+    "model": "configs.config",
+    "pk": null,
+    "fields": {
+        "key": "CASE_COMPETITION_CHAPTER_ROLES",
+        "value": "",
+        "description": "Case Competition: chapter roles whose holders get their chapter's competition emails (reminders, receipts and results), besides the chapter's named contacts and its five officers. Role names exactly as they appear on officer records (for example: pd chair), one per line or comma separated. Blank means the PD Chair.",
+        "modified": "2026-11-20T00:00:00Z"
     }
 }
 ]

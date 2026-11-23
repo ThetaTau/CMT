@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load competition_tags %}
+{% block title %}Case Competition{% endblock %}
+
+{% block content %}
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h1 class="page-title mb-0">National Engineering Case Competition</h1>
+  </div>
+  <p class="text-body-secondary">
+    Each year, chapters take on a real engineering case: they propose a solution, the
+    Regional Qualifiers build it, and the winners are announced at Convention.
+  </p>
+  {% for row in rows %}
+    <div class="card mb-3">
+      <div class="card-body">
+        <h2 class="h5 card-title">
+          <a href="{% url 'competitions:detail' row.competition.slug %}">{{ row.competition.name }} {{ row.competition.year_label }}</a>
+          {% if not row.competition.is_published %}<span class="badge text-bg-warning ms-1">Not published</span>{% endif %}
+        </h2>
+        <p class="card-text mb-2"><strong>Case:</strong> {{ row.competition.case_title }}</p>
+        {% if row.windows %}
+          <ul class="mb-2">
+            {% for window in row.windows %}
+              <li>{{ window.name }}: {{ window.opens }} to {{ window.closes }}{% if window.qualifiers_only %} (Regional Qualifiers only){% endif %}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+        {% if row.winners %}
+          <p class="card-text mb-0">
+            <strong>Winners:</strong>
+            {% for entry in row.winners %}{{ entry.chapter.full_name }} ({{ entry.place|ordinal }} place){% if not forloop.last %}, {% endif %}{% endfor %}
+          </p>
+        {% endif %}
+      </div>
+    </div>
+  {% empty %}
+    <p>No competition is published yet.</p>
+  {% endfor %}
+{% endblock content %}

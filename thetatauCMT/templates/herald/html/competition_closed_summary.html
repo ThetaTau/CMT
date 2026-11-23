@@ -1,0 +1,30 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}The {{ round.name }} window has closed{% endblock %}
+{% block content %}
+<h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 30px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">The {{ round.name }} window has closed</h2>
+<p>
+  The {{ round.name }} window of the {{ competition.name }} {{ competition.year_label }} closed on {{ closed }}.
+  <b>{{ complete|length }}</b> complete entr{{ complete|length|pluralize:"y,ies" }}.
+</p>
+{% if complete %}
+<p><b>Complete</b></p>
+<ul>
+  {% for entry in complete %}<li>{{ entry.chapter.full_name }}: {{ entry.title }}</li>{% endfor %}
+</ul>
+{% endif %}
+{% if extended %}
+<p><b>Extensions still open</b></p>
+<ul>
+  {% for row in extended %}<li>{{ row.chapter.full_name }}, until {{ row.until }}</li>{% endfor %}
+</ul>
+{% endif %}
+<p><b>Taking part, with no complete entry</b></p>
+<ul>
+  {% for chapter in waiting %}<li>{{ chapter.full_name }} ({{ chapter.region }})</li>{% empty %}<li>None</li>{% endfor %}
+</ul>
+<p>
+  See every chapter, give an extension or upload on a chapter's behalf on the status page:
+  <a href="{{ manage_url }}">{{ manage_url }}</a>
+</p>
+<p>The judges get their own email when judging opens.</p>
+{% endblock content %}

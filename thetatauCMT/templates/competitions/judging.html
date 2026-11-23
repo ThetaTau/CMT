@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}My Judging{% endblock %}
+
+{% block content %}
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h1 class="page-title mb-0">My Judging</h1>
+  </div>
+  <p class="text-body-secondary">
+    Score each entry against the rubric, with a comment on each criterion and overall feedback for the chapter.
+    Chapters read the feedback without your name. You never see other judges' scores.
+  </p>
+  {% for block in rounds %}
+    {% with round=block.judge.round %}
+      <section class="mb-4" aria-labelledby="judging-{{ round.pk }}">
+        <h2 class="h4" id="judging-{{ round.pk }}">{{ round.competition.short_name }} {{ round.competition.year_label }}: {{ round.name }}</h2>
+        {% if round.is_published %}
+          <p>The results are published, so these scorecards are final.</p>
+        {% else %}
+          <p>
+            {{ block.to_do }} of {{ block.rows|length }} still to submit. Scorecards are due {{ block.deadline }}.
+          </p>
+        {% endif %}
+        <div class="table-responsive">
+          <table class="table table-striped align-middle">
+            <thead>
+              <tr>
+                <th scope="col">Chapter</th>
+                <th scope="col">Project title</th>
+                <th scope="col">Scorecard</th>
+                <th scope="col"><span class="visually-hidden">Open</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for assignment, status in block.rows %}
+                <tr>
+                  <td>{{ assignment.entry.chapter.full_name }}<div class="small text-body-secondary">{{ assignment.entry.chapter.region.name }}</div></td>
+                  <td>{{ assignment.entry.title }}</td>
+                  <td>
+                    <span class="badge {% if status == 'submitted' %}text-bg-success{% elif status == 'draft' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
+                      {% if status == "submitted" %}Submitted{% elif status == "draft" %}Draft{% elif status == "stepped_aside" %}Stepped aside{% else %}Not started{% endif %}
+                    </span>
+                  </td>
+                  <td class="text-end">
+                    <a class="btn btn-sm {% if status == 'not_started' or status == 'draft' %}btn-primary{% else %}btn-outline-secondary{% endif %}" href="{% url 'competitions:scorecard' assignment.public_id %}">
+                      {% if status == "not_started" %}Score it{% elif status == "draft" %}Finish it{% else %}Open{% endif %}
+                    </a>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="4">No entries yet. They appear here when the window closes.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    {% endwith %}
+  {% endfor %}
+{% endblock content %}

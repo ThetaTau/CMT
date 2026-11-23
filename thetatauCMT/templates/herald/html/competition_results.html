@@ -1,0 +1,37 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}{{ round.name }} results{% endblock %}
+{% block content %}
+<h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 30px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">{{ round.name }} results</h2>
+<p>Greetings,</p>
+{% if outcome == "qualified" %}
+<p>
+  Congratulations! The {{ chapter.full_name }} is a <b>Regional Qualifier</b> in the {{ competition.name }}
+  {{ competition.year_label }} with "{{ entry.title }}".
+</p>
+{% if next_round %}
+<p>
+  The {{ next_round.name }} window opens on {{ next_round_opens }} and is open to the Regional Qualifiers only.
+  The chapter will get reminders before it opens and before it closes.
+</p>
+{% endif %}
+{% elif outcome == "not eligible" %}
+<p>
+  The {{ chapter.full_name }}'s entry "{{ entry.title|default:"Untitled" }}" was not eligible this year.
+  {% if entry.ineligible_reason %}The reason: {{ entry.ineligible_reason }}{% endif %}
+</p>
+{% else %}
+<p>
+  Thank you for taking part in the {{ competition.name }} {{ competition.year_label }}. The {{ chapter.full_name }}'s
+  entry "{{ entry.title }}" was not selected to advance this year.
+</p>
+{% endif %}
+{% if feedback_shared %}
+<p>
+  Read the judges' feedback on the entry's page: <a href="{{ entry_url }}">{{ entry_url }}</a>
+</p>
+{% endif %}
+<p>
+  See every Regional Qualifier: <a href="{{ results_url }}">{{ results_url }}</a>
+</p>
+{% include "herald/html/_competition_footer.html" %}
+{% endblock content %}

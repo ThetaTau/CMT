@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load static crispy_forms_tags %}
+{% block title %}Judges: {{ round.name }}{% endblock %}
+
+{% block css %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'css/competitions.css' %}">
+{% endblock css %}
+
+{% block content %}
+  {{ form.media }}
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h1 class="page-title mb-0">Judges: {{ round.name }}</h1>
+    <div class="page-actions d-flex flex-wrap gap-2 ms-auto">
+      <a class="btn btn-outline-secondary" href="{% url 'competitions:scores' competition.slug round.number %}">Scores and results</a>
+      <a class="btn btn-outline-secondary" href="{% url 'competitions:detail' competition.slug %}">Back to the competition</a>
+    </div>
+  </div>
+  <p>
+    {{ competition.name }} {{ competition.year_label }}. Every judge scores every complete entry except their own
+    chapter's. {% if started %}Judging is open; {{ ready }} entr{{ ready|pluralize:"y is,ies are" }} ready.{% else %}Judging opens on {{ opens }}, when the window has closed.{% endif %}
+    Scorecards are due {{ deadline }}. Judges get an email when judging opens, and reminders before the deadline.
+  </p>
+
+  {% if not round.is_published %}
+    <form id="competition-add-judge" class="competition-form mb-4" method="post">
+      {% csrf_token %}
+      {{ form|crispy }}
+      <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-primary" type="submit" name="action" value="add">Add the judge</button>
+        {% if started %}
+          <button class="btn btn-outline-secondary" type="submit" name="action" value="refresh" formnovalidate>Add late entries to every judge</button>
+        {% endif %}
+      </div>
+    </form>
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table table-striped align-middle" id="competition-judges">
+      <thead>
+        <tr>
+          <th scope="col">Judge</th>
+          <th scope="col">Chapter</th>
+          <th scope="col" class="text-end">Assigned</th>
+          <th scope="col" class="text-end">Submitted</th>
+          <th scope="col" class="text-end">Drafts</th>
+          <th scope="col" class="text-end">Stepped aside</th>
+          <th scope="col" class="text-end">To do</th>
+          <th scope="col"><span class="visually-hidden">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for judge in rows %}
+          <tr{% if judge.removed_at %} class="text-body-secondary"{% endif %}>
+            <td>{{ judge.user.name }}{% if judge.removed_at %} <span class="badge text-bg-secondary">Removed</span>{% endif %}<div class="small text-body-secondary">{{ judge.user.email }}</div></td>
+            <td>{{ judge.user.chapter.name }}</td>
+            <td class="text-end">{{ judge.assigned }}</td>
+            <td class="text-end">{{ judge.submitted }}</td>
+            <td class="text-end">{{ judge.drafts }}</td>
+            <td class="text-end">{{ judge.stepped_aside }}</td>
+            <td class="text-end">{% if judge.removed_at %}None{% else %}{{ judge.to_do }}{% endif %}</td>
+            <td class="text-end">
+              {% if not round.is_published %}
+                {% if judge.removed_at %}
+                  <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="user" value="{{ judge.user.pk }}">
+                    <button class="btn btn-sm btn-outline-primary" type="submit" name="action" value="add">Restore</button>
+                  </form>
+                {% else %}
+                  <form method="post" data-confirm="Remove {{ judge.user.name }} as a judge? Their scorecards stop counting.">
+                    {% csrf_token %}
+                    <input type="hidden" name="judge" value="{{ judge.pk }}">
+                    <button class="btn btn-sm btn-outline-danger" type="submit" name="action" value="remove">Remove</button>
+                  </form>
+                {% endif %}
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8">No judges yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock content %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script src="{% static 'js/competitions.js' %}"></script>
+{% endblock javascript %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load competition_tags %}
+{% block title %}{% if advance %}Regional Qualifiers{% else %}Winners{% endif %}: {{ competition.short_name }} {{ competition.year_label }}{% endblock %}
+
+{% block content %}
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h1 class="page-title mb-0">{% if advance %}Regional Qualifiers{% else %}The winners{% endif %}</h1>
+    <a class="btn btn-outline-secondary ms-auto" href="{% url 'competitions:detail' competition.slug %}">Back to the competition</a>
+  </div>
+  <p class="text-body-secondary">
+    The {{ competition.name }} {{ competition.year_label }}, {{ round.name }}. Published {{ published }}.
+  </p>
+  {% if own_result %}
+    <div class="alert alert-info">
+      Your chapter's result: <strong>{{ own_result }}</strong>.
+      <a class="alert-link" href="{% url 'competitions:entry' own_entry.public_id %}">See the entry{% if round.share_feedback %} and the judges' feedback{% endif %}</a>
+    </div>
+  {% endif %}
+
+  {% if advance %}
+    {% for region, entries in regions %}
+      <h2 class="h5 mt-3">{{ region.name }}</h2>
+      <ul class="list-group mb-3">
+        {% for entry in entries %}
+          <li class="list-group-item">
+            <a href="{% url 'competitions:entry' entry.public_id %}">{{ entry.title }}</a>
+            <div class="small text-body-secondary">{{ entry.chapter.full_name }}</div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% empty %}
+      <p>None</p>
+    {% endfor %}
+  {% else %}
+    <ul class="list-group mb-3">
+      {% for entry in entries %}
+        <li class="list-group-item">
+          {% if entry.place %}<span class="badge text-bg-primary me-1">{{ entry.place|ordinal }} place</span>{% endif %}
+          <a href="{% url 'competitions:entry' entry.public_id %}">{{ entry.title }}</a>
+          <div class="small text-body-secondary">{{ entry.chapter.full_name }} ({{ entry.chapter.region.name }})</div>
+        </li>
+      {% empty %}
+        <li class="list-group-item">None</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endblock content %}

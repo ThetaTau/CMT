@@ -162,6 +162,7 @@ class SupportDigestEntry(TimeStampedModel):
         OFFICER_UPDATE = "officer_update", _("Officer update reminder")
         PNM_INITIATION = "pnm_initiation", _("PNM and initiation reminder")
         TRANSITION_PAST_DUE = "transition_past_due", _("Transition report past due")
+        CASE_COMPETITION = "case_competition", _("Case Competition email")
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

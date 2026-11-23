@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Extension: {{ chapter.full_name }}{% endblock %}
+
+{% block content %}
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h1 class="page-title mb-0">Extension for the {{ chapter.full_name }}</h1>
+    <a class="btn btn-outline-secondary ms-auto" href="{% url 'competitions:manage' competition.slug %}">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i> Back
+    </a>
+  </div>
+  <p>
+    The {{ round.name }} window closes on {{ closes }}. The {{ chapter.full_name }}'s deadline is now {{ due }}.
+    An extension lets members of the chapter keep saving until its own deadline; its reminders count down to
+    it, and its entry reaches the judges when it ends.
+  </p>
+  <form id="competition-extension-form" method="post">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button class="btn btn-primary" type="submit">Save the deadline</button>
+  </form>
+{% endblock content %}

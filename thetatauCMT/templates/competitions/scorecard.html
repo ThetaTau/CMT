@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load static crispy_forms_tags %}
+{% block title %}Scorecard: {{ entry.chapter.full_name }}{% endblock %}
+
+{% block css %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'css/competitions.css' %}">
+{% endblock css %}
+
+{% block content %}
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h1 class="page-title mb-0">Scorecard: {{ entry.chapter.full_name }}</h1>
+    <a class="btn btn-outline-secondary ms-auto" href="{% if is_judge %}{% url 'competitions:judging' %}{% else %}{% url 'competitions:scores' competition.slug round.number %}{% endif %}">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i> Back
+    </a>
+  </div>
+  <p class="text-body-secondary">
+    {{ competition.short_name }} {{ competition.year_label }}, {{ round.name }}.
+    {% if not is_judge %}Judge: {{ assignment.judge.user.name }}.{% endif %}
+    Scorecard: <strong>{{ status_label }}</strong>{% if card.total is not None and card.submitted_at %}, {{ card.total }} points{% endif %}.
+    Due {{ deadline }}.
+  </p>
+
+  <section class="card mb-4" aria-labelledby="entry-title">
+    <div class="card-body">
+      <h2 class="h5 card-title" id="entry-title">{{ entry.title }}</h2>
+      <p>{{ entry.summary|linebreaksbr }}</p>
+      <h3 class="h6">Files and links</h3>
+      <ul>
+        {% for item, current in items %}
+          <li>{{ item.label }}: {% if current %}<a href="{% url 'competitions:file' current.public_id %}" target="_blank" rel="noopener">{{ current }}</a>{% else %}None{% endif %}</li>
+        {% endfor %}
+      </ul>
+      <h3 class="h6">Team</h3>
+      <ul class="mb-0">
+        {% for member in team %}
+          <li>
+            {{ member.user.name }}{% if member.team_role %}, {{ member.team_role }}{% endif %}
+            <span class="small text-body-secondary">({{ member.user.major|default:"None" }}, class of {{ member.user.graduation_year|default:"None" }})</span>
+          </li>
+        {% empty %}
+          <li>None</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </section>
+
+  {% if status == "stepped_aside" %}
+    <div class="alert alert-secondary">
+      {% if is_judge %}You{% else %}{{ assignment.judge.user.name }}{% endif %} stepped aside from this entry.
+      Reason: {{ assignment.step_aside_reason|default:"None" }}
+    </div>
+    {% if is_judge and not round.is_published %}
+      <form method="post">
+        {% csrf_token %}
+        <button class="btn btn-outline-primary" type="submit" name="action" value="undo_step_aside">Score it after all</button>
+      </form>
+    {% endif %}
+  {% elif editable %}
+    <form id="competition-scorecard-form" class="competition-form" method="post">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+      {% for criterion, points, comment in form.criterion_fields %}
+        <fieldset class="mb-4 competition-score-options">
+          <legend class="h6 mb-1">{{ criterion.name }}</legend>
+          {% if criterion.description %}<p class="small text-body-secondary mb-1">{{ criterion.description|linebreaksbr }}</p>{% endif %}
+          <div role="radiogroup" aria-label="Score for {{ criterion.name }}">
+            {% for radio in points %}
+              <div class="form-check form-check-inline">
+                {{ radio.tag }}
+                <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="form-text">{{ points.help_text }}</div>
+          {% for error in points.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+          <label class="form-label mt-2" for="{{ comment.id_for_label }}">Comment</label>
+          {{ comment }}
+        </fieldset>
+      {% endfor %}
+      {{ form.feedback|as_crispy_field }}
+      {{ form.private_note|as_crispy_field }}
+      <div class="d-flex flex-wrap gap-2">
+        {% if status != "submitted" %}
+          <button class="btn btn-outline-primary" type="submit" name="action" value="draft">Save a draft</button>
+          <button class="btn btn-primary" type="submit" name="action" value="submit">Submit the scorecard</button>
+        {% else %}
+          <button class="btn btn-primary" type="submit" name="action" value="submit">Submit the changes</button>
+        {% endif %}
+      </div>
+    </form>
+    <hr>
+    <h2 class="h6">Step aside</h2>
+    <p class="small text-body-secondary">If you have a conflict of interest with this entry, step aside from it. It then counts for nothing.</p>
+    <form method="post" data-confirm="Step aside from the {{ entry.chapter.full_name }}'s entry?">
+      {% csrf_token %}
+      {{ step_aside_form|crispy }}
+      <button class="btn btn-outline-danger" type="submit" name="action" value="step_aside">Step aside</button>
+    </form>
+  {% else %}
+    {% if is_judge and not round.is_published %}
+      <div class="alert alert-secondary">This scorecard can no longer be changed.</div>
+    {% endif %}
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr><th scope="col">Criterion</th><th scope="col" class="text-end">Points</th><th scope="col">Comment</th></tr>
+        </thead>
+        <tbody>
+          {% for criterion, score in criteria %}
+            <tr>
+              <td>{{ criterion.name }}</td>
+              <td class="text-end">{% if score and score.points is not None %}{{ score.points }}{% else %}None{% endif %}</td>
+              <td>
+                {{ score.comment|default:"None"|linebreaksbr }}
+                {% if manager and score and score.comment %}
+                  <form method="post" class="mt-1">
+                    {% csrf_token %}
+                    <input type="hidden" name="score" value="{{ score.pk }}">
+                    {% if score.comment_hidden %}
+                      <span class="badge text-bg-warning">Hidden from the chapter</span>
+                      <button class="btn btn-sm btn-link" type="submit" name="action" value="show_comment">Show it</button>
+                    {% else %}
+                      <button class="btn btn-sm btn-link" type="submit" name="action" value="hide_comment">Hide from the chapter</button>
+                    {% endif %}
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <h2 class="h6">Feedback for the chapter</h2>
+    <p>{{ card.feedback|default:"None"|linebreaksbr }}</p>
+    {% if manager and card and card.feedback %}
+      <form method="post" class="mb-3">
+        {% csrf_token %}
+        {% if card.feedback_hidden %}
+          <span class="badge text-bg-warning">Hidden from the chapter</span>
+          <button class="btn btn-sm btn-link" type="submit" name="action" value="show_feedback">Show it</button>
+        {% else %}
+          <button class="btn btn-sm btn-link" type="submit" name="action" value="hide_feedback">Hide from the chapter</button>
+        {% endif %}
+      </form>
+    {% endif %}
+    {% if manager or is_judge %}
+      <h2 class="h6">Private note</h2>
+      <p>{{ card.private_note|default:"None"|linebreaksbr }}</p>
+    {% endif %}
+  {% endif %}
+{% endblock content %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script src="{% static 'js/competitions.js' %}"></script>
+{% endblock javascript %}

@@ -1,0 +1,38 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}{{ round.name }} received{% endblock %}
+{% block content %}
+<h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 30px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">{{ round.name }} received</h2>
+<p>Greetings,</p>
+<p>
+  The {{ chapter.full_name }}'s {{ round.name }} entry for the {{ competition.name }} is complete. It was saved
+  {% if saved_by %}by {{ saved_by.name }}{% if on_behalf %} on the chapter's behalf{% endif %} {% endif %}on {{ saved_at }}.
+</p>
+<table role="presentation" width="100%" cellpadding="8" cellspacing="0" style="border-collapse: collapse; font-family: Helvetica; font-size: 14px;">
+  <tr>
+    <th align="left" style="border-bottom: 1px solid #d0d0d0; color: #404040;">Project title</th>
+    <td style="border-bottom: 1px solid #d0d0d0;">{{ entry.title }}</td>
+  </tr>
+  {% for row in files %}
+  <tr>
+    <th align="left" style="border-bottom: 1px solid #d0d0d0; color: #404040;">{{ row.label }}</th>
+    <td style="border-bottom: 1px solid #d0d0d0;">{{ row.name }}</td>
+  </tr>
+  {% endfor %}
+  <tr>
+    <th align="left" style="border-bottom: 1px solid #d0d0d0; color: #404040;">Team</th>
+    <td style="border-bottom: 1px solid #d0d0d0;">{% for member in team %}{{ member.user.name }}{% if member.team_role %} ({{ member.team_role }}){% endif %}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</td>
+  </tr>
+  <tr>
+    <th align="left" style="border-bottom: 1px solid #d0d0d0; color: #404040;">Due</th>
+    <td style="border-bottom: 1px solid #d0d0d0;">{{ due }}</td>
+  </tr>
+</table>
+<p>
+  View the entry: <a href="{{ entry_url }}">{{ entry_url }}</a>
+</p>
+<p>
+  Members of the chapter can still change it until the deadline: <a href="{{ submit_url }}">{{ submit_url }}</a>.
+  This receipt is sent again after each change. If you did not expect this change, check the entry now.
+</p>
+{% include "herald/html/_competition_footer.html" %}
+{% endblock content %}

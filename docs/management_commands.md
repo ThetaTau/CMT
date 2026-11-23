@@ -43,6 +43,35 @@ appearing as open and no further reminders go out.
     python manage.py ballot_reminders
     # --ballot <slug> to limit, --override to ignore the 7 day cadence
 
+### Case Competition Daily
+Everything scheduled for the National Engineering Case Competition, in one
+daily task (schedule it in the US morning). Each run sends what is due that day,
+once: reminders to chapters taking part that have not finished their entry
+(before a window opens, when it opens, and 3, 1 and 0 days before it closes,
+counted in Eastern days; the final round reaches only the Regional Qualifiers),
+the managers' summary after a window closes, and the judges' "judging is open"
+email and reminders before the judging deadline. It also gives judges entries
+that reached them late (an extension that ended). A missed day never replays old
+steps, and moving a date starts that window's reminders over.
+
+    python manage.py case_competition_daily --dry-run
+    python manage.py case_competition_daily
+
+### Seed Case Competition Demo
+Local QA only (refuses to run without `DEBUG` unless `--force`). Builds the
+published demo competition `necc-demo` with this year's rounds and rubric (from
+the `necc_2026_2027` fixture) and eight chapters from three regions, at the
+chosen stage: `open` (default), `judging`, `results` or `final`. At `judging`,
+six entries are complete, one is incomplete and one chapter submitted nothing;
+three demo judges are part way through (one stepped aside from an entry) and two
+entries tie. The demo judges sign in as `necc-judge-avery@demo.thetatau.local`
+(also `-blake`, `-casey`) with the password `necc-demo-judge`. `--judge EMAIL`
+(repeatable) makes an existing account a judge too, with nothing scored.
+Running it again rebuilds it.
+
+    python manage.py seed_case_competition_demo
+    python manage.py seed_case_competition_demo --stage judging --judge you@example.com
+
 ### Load Feature Registry
 To load or refresh the feature catalog, guided tours and role guides from the
 in-repo fixture. Idempotent — rows are upserted by natural key, and anything

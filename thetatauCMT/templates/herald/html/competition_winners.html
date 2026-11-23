@@ -1,0 +1,31 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}The {{ competition.name }} winners{% endblock %}
+{% block content %}
+<h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 30px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">The winners</h2>
+<p>Greetings,</p>
+{% if entry.place %}
+<p>
+  Congratulations! The {{ chapter.full_name }} placed <b>{{ entry.place }}{% if entry.place == 1 %}st{% elif entry.place == 2 %}nd{% elif entry.place == 3 %}rd{% else %}th{% endif %}</b>
+  in the {{ competition.name }} {{ competition.year_label }} with "{{ entry.title }}".
+</p>
+{% else %}
+<p>
+  Thank you for taking part in the final round of the {{ competition.name }} {{ competition.year_label }}. The
+  winners have been announced:
+</p>
+{% endif %}
+<ul>
+  {% for winner in winners %}
+  <li>{{ winner.place }}{% if winner.place == 1 %}st{% elif winner.place == 2 %}nd{% elif winner.place == 3 %}rd{% else %}th{% endif %} place: {{ winner.chapter.full_name }}, "{{ winner.title }}"</li>
+  {% endfor %}
+</ul>
+{% if feedback_shared %}
+<p>
+  Read the judges' feedback on the chapter's final submission: <a href="{{ entry_url }}">{{ entry_url }}</a>
+</p>
+{% endif %}
+<p>
+  See the winners and every final submission: <a href="{{ results_url }}">{{ results_url }}</a>
+</p>
+{% include "herald/html/_competition_footer.html" %}
+{% endblock content %}

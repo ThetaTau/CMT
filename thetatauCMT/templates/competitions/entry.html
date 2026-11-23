@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}{{ entry.title|default:"Untitled" }}: {{ chapter.full_name }}{% endblock %}
+
+{% block content %}
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h1 class="page-title mb-0">{{ entry.title|default:"Untitled" }}</h1>
+    <div class="page-actions d-flex flex-wrap gap-2 ms-auto">
+      {% if my_assignment %}
+        <a class="btn {% if my_status == 'not_started' or my_status == 'draft' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'competitions:scorecard' my_assignment.public_id %}">
+          <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>
+          {% if my_status == "not_started" %}Score this entry{% elif my_status == "draft" %}Finish your scorecard{% else %}Your scorecard{% endif %}
+        </a>
+      {% endif %}
+      {% if can_edit %}
+        <a class="btn btn-primary" href="{% url 'competitions:submit' competition.slug round.number %}">Edit the entry</a>
+      {% endif %}
+      <a class="btn btn-outline-secondary" href="{% url 'competitions:detail' competition.slug %}">Back to the competition</a>
+    </div>
+  </div>
+  <p class="text-body-secondary">
+    The {{ chapter.full_name }} ({{ chapter.region }}), {{ round.name }}, {{ competition.name }} {{ competition.year_label }}.
+  </p>
+  {% if my_assignment %}
+    <p>
+      <strong>You are judging this entry.</strong> Your scorecard: {{ my_status_label }}{% if judging_deadline and not round.is_published %}. Scorecards are due {{ judging_deadline }}{% endif %}.
+    </p>
+  {% endif %}
+
+  {% if result %}
+    <div class="alert {% if result == 'Not selected' or result == 'Finalist' %}alert-secondary{% elif result == 'Not eligible' %}alert-warning{% else %}alert-success{% endif %}">
+      <strong>Result:</strong> {{ result }}{% if result == "Not eligible" and entry.ineligible_reason %}. {{ entry.ineligible_reason }}{% endif %}
+    </div>
+  {% elif own or manager %}
+    <p>
+      <strong>Status:</strong> {{ status_label }}{% if missing %}. {% if status == "incomplete" %}Missing at the deadline{% else %}Still needed{% endif %}: {{ missing|join:", " }}{% endif %}.
+      <strong>Due:</strong> {{ due }}.
+    </p>
+    {% if not entry.eligible %}
+      <div class="alert alert-warning"><strong>Not eligible:</strong> {{ entry.ineligible_reason|default:"None" }}</div>
+    {% endif %}
+  {% endif %}
+
+  <h2 class="h5">Summary</h2>
+  <p>{{ entry.summary|default:"None"|linebreaksbr }}</p>
+
+  <h2 class="h5">Files and links</h2>
+  <ul>
+    {% for item, current in items %}
+      <li>
+        {{ item.label }}:
+        {% if current %}
+          <a href="{% url 'competitions:file' current.public_id %}" target="_blank" rel="noopener">{{ current }}</a>
+        {% else %}None{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+
+  <h2 class="h5">Team</h2>
+  <ul>
+    {% for member in team %}
+      <li>{{ member.user.name }}{% if member.team_role %}, {{ member.team_role }}{% endif %}</li>
+    {% empty %}
+      <li>None</li>
+    {% endfor %}
+  </ul>
+
+  {% if scores %}
+    <h2 class="h5">Scores</h2>
+    {% if scores.average is not None %}<p>Average score: {{ scores.average }}</p>{% endif %}
+    {% if scores.criteria %}
+      <ul>
+        {% for criterion, average in scores.criteria %}<li>{{ criterion.name }}: {{ average|default:"None" }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+    {% if scores.rank %}<p>Rank in the region: {{ scores.rank }} of {{ scores.region_count }}{% if scores.tied %} (tied){% endif %}</p>{% endif %}
+  {% endif %}
+
+  {% if feedback %}
+    <h2 class="h5">Feedback from the judges</h2>
+    {% for row in feedback %}
+      <div class="card mb-3">
+        <div class="card-body">
+          <h3 class="h6 card-title">{{ row.label }}</h3>
+          {% if row.feedback %}<p>{{ row.feedback|linebreaksbr }}</p>{% endif %}
+          {% if row.comments %}
+            <dl class="mb-0">
+              {% for name, comment in row.comments %}
+                <dt>{{ name }}</dt>
+                <dd>{{ comment|linebreaksbr }}</dd>
+              {% endfor %}
+            </dl>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if own or manager %}
+    <p class="small text-body-secondary">
+      First complete: {{ submitted }}. Last saved: {{ last_saved }}{% if entry.last_saved_by %} by {{ entry.last_saved_by.name }}{% if entry.last_saved_on_behalf %} on the chapter's behalf{% endif %}{% endif %}.
+    </p>
+  {% endif %}
+
+  {% if manager %}
+    <h2 class="h5">For managers</h2>
+    <dl class="row">
+      <dt class="col-sm-3">Qualified</dt>
+      <dd class="col-sm-9">{% if entry.advanced is None %}None{% elif entry.advanced %}Yes{% else %}No{% endif %}</dd>
+      <dt class="col-sm-3">Place</dt>
+      <dd class="col-sm-9">{{ entry.place|default:"None" }}</dd>
+      <dt class="col-sm-3">Decided</dt>
+      <dd class="col-sm-9">{% if entry.decided_by %}{{ entry.decided_by.name }}{% else %}None{% endif %}</dd>
+    </dl>
+    <h3 class="h6">Replaced files</h3>
+    <ul>
+      {% for old in replaced %}
+        <li>
+          {{ old.item.label }}: <a href="{% url 'competitions:file' old.public_id %}" target="_blank" rel="noopener">{{ old }}</a>
+          {% if old.uploaded_by %}(saved by {{ old.uploaded_by.name }}){% endif %}
+        </li>
+      {% empty %}
+        <li>None</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endblock content %}

@@ -1,0 +1,49 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}{{ chapter.full_name }} is registered{% endblock %}
+{% block content %}
+<h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 30px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">You are registered</h2>
+<p>Greetings,</p>
+<p>
+  The {{ chapter.full_name }} is registered for the {{ competition.name }} {{ competition.year_label }}.
+  This year's case: <b>{{ competition.case_title }}</b>.
+</p>
+{% if contacts %}
+<p>
+  Main contacts for the chapter's entry:
+  {% for person in contacts %}{{ person.name }}{% if not forloop.last %}, {% endif %}{% endfor %}.
+  Any member of the chapter can change them on the chapter's registration page:
+  <a href="{{ intent_url }}">{{ intent_url }}</a>
+</p>
+{% else %}
+<p>
+  No main contacts are named yet. Any member of the chapter can name them on the chapter's
+  registration page: <a href="{{ intent_url }}">{{ intent_url }}</a>
+</p>
+{% endif %}
+<table role="presentation" width="100%" cellpadding="8" cellspacing="0" style="border-collapse: collapse; font-family: Helvetica; font-size: 14px;">
+  <tr>
+    <th align="left" style="border-bottom: 1px solid #d0d0d0; color: #404040;">Window</th>
+    <th align="left" style="border-bottom: 1px solid #d0d0d0; color: #404040;">Opens</th>
+    <th align="left" style="border-bottom: 1px solid #d0d0d0; color: #404040;">Due</th>
+  </tr>
+  {% for window in windows %}
+  <tr>
+    <td style="border-bottom: 1px solid #d0d0d0;">{{ window.name }}{% if window.qualifiers_only %} (qualifiers only){% endif %}</td>
+    <td style="border-bottom: 1px solid #d0d0d0;">{{ window.opens }}</td>
+    <td style="border-bottom: 1px solid #d0d0d0;">{{ window.closes }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% if key_dates %}
+<p><b>Key dates</b></p>
+<ul>
+  {% for key_date in key_dates %}<li>{{ key_date }}</li>{% endfor %}
+</ul>
+{% endif %}
+<p>
+  While a window is open, any current member or PNM of the chapter uploads the chapter's entry from the
+  competition page. A window marked "qualifiers only" is for the Regional Qualifiers alone. The chapter gets
+  reminders before each window it can enter opens and before it closes, until its entry is complete.
+</p>
+{% include "herald/html/_competition_footer.html" %}
+{% endblock content %}

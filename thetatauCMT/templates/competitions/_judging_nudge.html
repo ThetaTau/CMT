@@ -1,0 +1,22 @@
+{% comment %}
+The judges' nudge at the top of the home page (S24), like the ballots one: shown while the
+viewer has Case Competition scorecards to submit. Context: case_competition_to_do, from
+competitions.context_processors.case_competition.
+{% endcomment %}
+{% if case_competition_to_do %}
+  <div class="alert alert-warning" role="alert" id="judging-nudge">
+    <h2 class="h5 alert-heading">
+      <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>
+      You have {{ case_competition_to_do.count }} Case Competition scorecard{{ case_competition_to_do.count|pluralize }} to submit
+    </h2>
+    <ul class="mb-2">
+      {% for row in case_competition_to_do.rounds %}
+        <li>
+          {{ row.round.competition.short_name }} {{ row.round.competition.year_label }}, {{ row.round.name }}:
+          {{ row.count }} to submit{% if row.deadline %}, due {{ row.deadline }}{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    <a class="btn btn-sm btn-primary" href="{% url 'competitions:judging' %}">Score the entries</a>
+  </div>
+{% endif %}

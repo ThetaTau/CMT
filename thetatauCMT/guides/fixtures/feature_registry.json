@@ -862,6 +862,66 @@
       ]
     },
     {
+      "key": "case-competition",
+      "name": "Case Competition",
+      "description": "The National Engineering Case Competition: chapters propose a solution to the year's case, the Regional Qualifiers build it, and the winners are announced at Convention.",
+      "icon": "fa-solid fa-lightbulb",
+      "features": [
+        {
+          "key": "case-competition-page",
+          "name": "The Case Competition",
+          "short_description": "This year's case, its windows and rubric, the key dates, and where your chapter stands.",
+          "long_description": "The National Engineering Case Competition, from the Activity menu. Every time is shown in Eastern time. The Your chapter panel shows whether the chapter is registered, each round's status and what is still missing, and its result once published. Past years stay listed with their case and winners.",
+          "url_name": "competitions:current"
+        },
+        {
+          "key": "case-competition-register",
+          "name": "Register your chapter for the Case Competition",
+          "short_description": "Any member or PNM registers the chapter and names the main contacts in charge of its entry.",
+          "long_description": "While the intent form is open, any current member or PNM of the chapter can register it, name its main contacts, and give an estimated team size and a note for national. After the form closes, a registered chapter can still change its contacts, withdraw (which stops its reminders) or rejoin until the last round closes. A chapter that did not register can still enter by uploading its proposal before the proposal window closes; only the Regional Qualifiers submit the final submission. The contacts, the chapter's officers and the PD Chair get the competition's emails.",
+          "url_name": "competitions:current",
+          "url_fragment": "your-chapter"
+        },
+        {
+          "key": "case-competition-submit",
+          "name": "Submit your chapter's Case Competition entry",
+          "short_description": "Upload the chapter's proposal, and later its final submission, while the window is open.",
+          "long_description": "Any current member or PNM of the chapter can save the entry as often as needed until the deadline: the project title, a summary, each file or link the round asks for, and the team. There is no separate Submit button: the entry counts as submitted once the title, the summary and every required file are in, and a receipt is emailed after each save of a complete entry. Proposals are PDF or PowerPoint files. Chapters that have not finished get reminders before the window opens and as it closes. The final round is open to the Regional Qualifiers only.",
+          "url_name": "competitions:submit_current"
+        },
+        {
+          "key": "case-competition-results",
+          "name": "Case Competition Regional Qualifiers and winners",
+          "short_description": "The selected entries, open to every member once the results are published.",
+          "long_description": "When the proposals are judged, each chapter reads its result and the judges' feedback, unsigned, on its entry's page, and every member can open the Regional Qualifiers' proposals. The winners of the final round are announced at Convention, and the results are recorded as chapter awards.",
+          "url_name": "competitions:results_current"
+        },
+        {
+          "key": "case-competition-judging",
+          "name": "My Judging (Case Competition judges)",
+          "short_description": "For judges: score each entry against the rubric, with a comment on each criterion and feedback for the chapter.",
+          "long_description": "A scales icon at the top of every page shows how many scorecards you still have to submit, and a reminder heads your home page. My Judging is in the Activity menu and the account menu while you judge a round, and each entry's page links to your scorecard for it. Each entry reaches you when its window closes; you never score your own chapter's entry and never see other judges' scores. Save a draft at any time and submit each scorecard by the judging deadline; you can change it until the results are published. Step aside from an entry if you have a conflict of interest. Anyone else following this link lands on the competition page.",
+          "url_name": "competitions:judging"
+        },
+        {
+          "key": "case-competition-status",
+          "name": "Case Competition: chapters taking part",
+          "short_description": "Which chapters are taking part and which have submitted, read only for National Officers.",
+          "long_description": "Competition managers (by default the Professional Development Director) also give a chapter an extension, upload on its behalf, and download CSV files of the chapters, the entries and every score.",
+          "url_name": "competitions:manage_current",
+          "audience": "natoff"
+        },
+        {
+          "key": "case-competition-scores",
+          "name": "Case Competition: judges, scores and results",
+          "short_description": "For competition managers: add judges, follow their progress, rank the scores in each region, choose the qualifiers or the places, and publish.",
+          "long_description": "Pre-select puts forward the top entries in each region within the round's limits. Change any decision, mark an entry ineligible with a reason the chapter sees, or hide an unkind comment, then publish the results or, at Convention, announce the winners. Anyone else following this link lands on the competition page.",
+          "url_name": "competitions:scores_current",
+          "audience": "natoff"
+        }
+      ]
+    },
+    {
       "key": "volunteering",
       "name": "Volunteering",
       "description": "Putting yourself or someone else forward to serve the fraternity nationally.",
@@ -1269,6 +1329,12 @@
           "body": "Start your transition report any time and save a draft as you go; it is due shortly before your term as Regent ends. It covers what worked, what did not, and what your successor needs to know. As Regent you can also read every position's past reports for your chapter from the same page, not just your own.",
           "feature": "transition-reports",
           "cadence": "each_term"
+        },
+        {
+          "title": "Enter the Case Competition",
+          "body": "Each fall the National Engineering Case Competition asks chapters to propose a solution to a real engineering case. While the intent form is open, register the chapter and name the members in charge of its entry, then make sure they upload the proposal before the window closes. Any member can do either, and the reminders come to you too.",
+          "feature": "case-competition-register",
+          "cadence": "annual"
         }
       ]
     },

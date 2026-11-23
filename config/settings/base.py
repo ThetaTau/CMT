@@ -153,6 +153,7 @@ LOCAL_APPS = [
     "thetatauCMT.transitions.apps.TransitionsConfig",
     "thetatauCMT.biglittle.apps.BigLittleConfig",
     "thetatauCMT.support.apps.SupportConfig",
+    "thetatauCMT.competitions.apps.CompetitionsConfig",
     # Added after any apps which contain models for which to create signals
     "email_signals",
 ]
@@ -307,6 +308,7 @@ TEMPLATES = [
                 "thetatauCMT.utils.context_processors.incident_report",
                 "thetatauCMT.guides.context_processors.whats_new",
                 "thetatauCMT.ballots.context_processors.outstanding_ballots",
+                "thetatauCMT.competitions.context_processors.case_competition",
             ],
         },
     }

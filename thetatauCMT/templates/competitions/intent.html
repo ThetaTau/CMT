@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load static crispy_forms_tags %}
+{% block title %}Registration: {{ chapter.full_name }}{% endblock %}
+
+{% block css %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'css/competitions.css' %}">
+{% endblock css %}
+
+{% block content %}
+  {{ form.media }}
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h1 class="page-title mb-0">{{ chapter.full_name }}: registration</h1>
+    <a class="btn btn-outline-secondary ms-auto" href="{% url 'competitions:detail' competition.slug %}#your-chapter">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to the competition
+    </a>
+  </div>
+  <p>
+    The {{ competition.name }} {{ competition.year_label }}. Any current member or PNM of the chapter can
+    register it, name its main contacts and change them later. The contacts and the chapter's officers get
+    the competition's emails.
+  </p>
+
+  {% if registered %}
+    <div class="alert alert-success">
+      Registered on {{ registered_on }}{% if participant.declared_by %} by {{ participant.declared_by.name }}{% endif %}.
+      {% if can_change %}You can change the contacts, team size and note until {{ changes_close }}.{% endif %}
+    </div>
+  {% elif withdrawn %}
+    <div class="alert alert-secondary">
+      The chapter withdrew on {{ withdrawn_on }}, so it gets no reminders.
+      {% if can_change %}Save the form below to rejoin.{% endif %}
+    </div>
+  {% elif can_change %}
+    <div class="alert alert-info">The intent form is open until {{ intent_closes }}.</div>
+  {% else %}
+    <div class="alert alert-secondary">
+      The intent form is closed ({{ intent_opens }} to {{ intent_closes }}).
+      {% if late_entry_open and entry_round %}
+        Until the {{ entry_round.name }} window closes, any member can still enter by uploading the chapter's
+        {{ entry_round.name|lower }}, which registers the chapter.
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if can_change %}
+    <form id="competition-intent-form" class="competition-form" method="post">
+      {% csrf_token %}
+      {{ form|crispy }}
+      <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-primary" type="submit" name="action" value="save">
+          {% if registered %}Save changes{% elif withdrawn %}Rejoin{% else %}Register the chapter{% endif %}
+        </button>
+      </div>
+    </form>
+    {% if registered %}
+      <form class="mt-4" method="post" data-confirm="Withdraw the {{ chapter.full_name }}? Its reminders stop. Any member can rejoin here.">
+        {% csrf_token %}
+        <button class="btn btn-outline-danger" type="submit" name="action" value="withdraw">Withdraw the chapter</button>
+      </form>
+    {% endif %}
+  {% elif participant %}
+    <dl class="row">
+      <dt class="col-sm-3">Main contacts</dt>
+      <dd class="col-sm-9">{% for person in participant.contacts.all %}{{ person.name }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
+      <dt class="col-sm-3">Estimated team size</dt>
+      <dd class="col-sm-9">{{ participant.team_size_estimate|default:"None" }}</dd>
+      <dt class="col-sm-3">Note</dt>
+      <dd class="col-sm-9">{{ participant.note|default:"None"|linebreaksbr }}</dd>
+    </dl>
+  {% endif %}
+{% endblock content %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script src="{% static 'js/competitions.js' %}"></script>
+{% endblock javascript %}

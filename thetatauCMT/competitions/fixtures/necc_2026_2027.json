@@ -1,0 +1,422 @@
+[
+    {
+        "model": "competitions.competition",
+        "pk": 1,
+        "fields": {
+            "name": "National Engineering Case Competition",
+            "short_name": "NECC",
+            "year_label": "2026-2027",
+            "slug": "necc-2026-2027",
+            "case_title": "Reduce energy usage in your community",
+            "case_description": "<p>As a team you will define the community, the baseline, and scope (campus building, a neighborhood, a process, a system, etc.).</p><p>A competitive response will consider the following:</p><ul><li><strong>Scope.</strong> Define a specific problem with a quantified baseline you can measure against.</li><li><strong>Analysis.</strong> Show engineering work such as calculations, modeling, data, or trade studies.</li><li><strong>Development.</strong> Address cost, schedule, and other constraints to utilize the $400 grant to prototype or demonstrate.</li><li><strong>Metrics.</strong> Tie specific, measurable success metrics back to the case objective.</li></ul>",
+            "about": "<h3>Purpose</h3><ul><li><strong>Engineering In Action.</strong> Take an open-ended, real-world problem from research and analysis through design, build, and measured results.</li><li><strong>Skills Members Can Show.</strong> Trade studies, feasibility analysis, budgeting, technical writing, and project execution is work every member of the team can utilize in their career.</li><li><strong>A Portfolio For Your Chapter.</strong> Finalist work is funded, built, and documented, giving your chapter a visible engineering project on campus and in your community.</li><li><strong>Recognition For Technical Work.</strong> This national award recognizes what your members can build, showcased as part of the entire Theta Tau professional community.</li><li><strong>Connection Across Theta Tau.</strong> Every chapter works the same case in the same semester, creating a shared challenge and friendly competition across regions.</li></ul><h3>Timeline</h3><ol><li><strong>Case Released (September 2026).</strong> Every chapter receives the engineering case, the rubric, and submission requirements.</li><li><strong>Chapter Proposal (fall semester).</strong> Your chapter has the semester to research the case and write a proposal.</li><li><strong>Regional Qualifiers (January 2027).</strong> Up to two qualifying proposals per region advance to the development phase.</li><li><strong>Funded Build (spring semester).</strong> Each qualifying chapter receives $400 to prototype, pilot, or otherwise develop the idea.</li><li><strong>National Winners (Convention 2027).</strong> Finalists are showcased; first and second place earn chapter dues awards.</li></ol><h3>Awards</h3><ul><li><strong>First place: dues reduction.</strong> The national first-place chapter has its chapter dues reduced for the following academic year.</li><li><strong>Second place: dues reduction.</strong> The national second-place chapter receives a smaller dues reduction, also applied the following year.</li><li><strong>$400 Development Grant.</strong> Awarded to each regional qualifying chapter to prototype, pilot, or build. Up to 20 chapters funded this cycle.</li></ul>",
+            "resources": "",
+            "announcement": "",
+            "contact_role": "professional development director",
+            "contact_email": "",
+            "time_zone": "America/New_York",
+            "intent_opens_at": "2026-09-11T00:00:00-04:00",
+            "intent_closes_at": "2026-09-28T23:59:59-04:00",
+            "is_published": false,
+            "created_by": null,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.keydate",
+        "pk": 1,
+        "fields": {
+            "competition": 1,
+            "date": "2026-09-11",
+            "label": "Competition launch",
+            "description": "Announcement released.",
+            "link": "",
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.keydate",
+        "pk": 2,
+        "fields": {
+            "competition": 1,
+            "date": "2026-09-14",
+            "label": "Recorded overview",
+            "description": "Prerecorded walkthrough of the case, structure, dates, judging, awards, and how to participate.",
+            "link": "",
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.keydate",
+        "pk": 3,
+        "fields": {
+            "competition": 1,
+            "date": "2026-09-22",
+            "label": "PD Chair call, live Q&A",
+            "description": "Opportunity to ask questions.",
+            "link": "",
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.keydate",
+        "pk": 4,
+        "fields": {
+            "competition": 1,
+            "date": "2026-09-28",
+            "label": "Intent-to-compete form due",
+            "description": "Non-binding and used only for participation tracking and judging-load planning.",
+            "link": "",
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.keydate",
+        "pk": 5,
+        "fields": {
+            "competition": 1,
+            "date": "2026-12-04",
+            "label": "Submission window opens",
+            "description": "Portal opens. Final office hours.",
+            "link": "",
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.keydate",
+        "pk": 6,
+        "fields": {
+            "competition": 1,
+            "date": "2026-12-11",
+            "label": "Submissions close",
+            "description": "Final proposals due at 11:59 pm Eastern. Portal closes.",
+            "link": "",
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.keydate",
+        "pk": 7,
+        "fields": {
+            "competition": 1,
+            "date": "2027-05-28",
+            "label": "Final submissions due",
+            "description": "Regional Qualifiers submit their final report, presentation and grant spending by 11:59 pm Eastern.",
+            "link": "",
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.keydate",
+        "pk": 8,
+        "fields": {
+            "competition": 1,
+            "date": "2027-07-17",
+            "label": "National winners announced",
+            "description": "Finalists are showcased at Convention 2027, where first and second place are announced.",
+            "link": "",
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.round",
+        "pk": 1,
+        "fields": {
+            "number": 1,
+            "name": "Proposal",
+            "selection": "advance",
+            "eligibility": "participants",
+            "instructions": "<p><strong>Format:</strong> PowerPoint or PDF.</p><p><strong>Length:</strong> 10 to 20 slides.</p>",
+            "opens_at": "2026-12-04T00:00:00-05:00",
+            "closes_at": "2026-12-11T23:59:59-05:00",
+            "judging_closes_at": "2027-01-08T23:59:59-05:00",
+            "advance_per_region": 2,
+            "advance_total": 20,
+            "places": null,
+            "competition": 1,
+            "grace_minutes": 10,
+            "score_min": 1,
+            "share_feedback": true,
+            "share_scores": false,
+            "share_rank": false,
+            "reminder_days_before_open": "7",
+            "reminder_days_before_close": "3,1,0",
+            "judge_reminder_days": "7,3,1",
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.round",
+        "pk": 2,
+        "fields": {
+            "number": 2,
+            "name": "Final submission",
+            "selection": "places",
+            "eligibility": "advanced",
+            "instructions": "<p>Additional information will be provided to qualifying chapters.</p>",
+            "opens_at": "2027-05-21T00:00:00-04:00",
+            "closes_at": "2027-05-28T23:59:59-04:00",
+            "judging_closes_at": "2027-06-25T23:59:59-04:00",
+            "advance_per_region": null,
+            "advance_total": null,
+            "places": 2,
+            "competition": 1,
+            "grace_minutes": 10,
+            "score_min": 1,
+            "share_feedback": true,
+            "share_scores": false,
+            "share_rank": false,
+            "reminder_days_before_open": "7",
+            "reminder_days_before_close": "3,1,0",
+            "judge_reminder_days": "7,3,1",
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.rubriccriterion",
+        "pk": 1,
+        "fields": {
+            "round": 1,
+            "name": "Problem Definition & Research",
+            "description": "Problem is precisely scoped with a quantified baseline. Research draws on credible technical sources and, where relevant, stakeholder or user input. Assumptions are explicit and justified.",
+            "max_points": 5,
+            "order": 1,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.rubriccriterion",
+        "pk": 2,
+        "fields": {
+            "round": 1,
+            "name": "Technical Rigor & Analysis",
+            "description": "Sound engineering fundamentals applied throughout. Calculations, modeling, or data analysis are correct, appropriately detailed, and clearly documented. Trade studies compare alternatives against quantified criteria.",
+            "max_points": 5,
+            "order": 2,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.rubriccriterion",
+        "pk": 3,
+        "fields": {
+            "round": 1,
+            "name": "Solution Design & Feasibility",
+            "description": "Design is complete and practical. Constraints (cost, schedule, safety, regulatory) are identified and addressed. A realistic implementation path and budget show the idea could be executed with the $400 grant or a clearly justified plan beyond it.",
+            "max_points": 5,
+            "order": 3,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.rubriccriterion",
+        "pk": 4,
+        "fields": {
+            "round": 1,
+            "name": "Impact & Measurability",
+            "description": "Projected impact is quantified against the baseline with well-considered estimates. Success metrics are specific, measurable, and tied to the case objective.",
+            "max_points": 5,
+            "order": 4,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.rubriccriterion",
+        "pk": 5,
+        "fields": {
+            "round": 1,
+            "name": "Innovation & Creativity",
+            "description": "Approach is original or applies existing technology in a novel, well-justified way that clearly improves on standard solutions.",
+            "max_points": 5,
+            "order": 5,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.rubriccriterion",
+        "pk": 6,
+        "fields": {
+            "round": 1,
+            "name": "Communication & Professionalism",
+            "description": "Proposal is well organized, concise, and polished. Figures, tables, and citations are professional and support the argument. Accessible to a technical reviewer from any discipline.",
+            "max_points": 5,
+            "order": 6,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.rubriccriterion",
+        "pk": 7,
+        "fields": {
+            "round": 1,
+            "name": "Team & Chapter Engagement",
+            "description": "Documented participation drawing from multiple disciplines and class years, with clearly defined roles.",
+            "max_points": 5,
+            "order": 7,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.rubriccriterion",
+        "pk": 8,
+        "fields": {
+            "round": 2,
+            "name": "Execution of Development Plan",
+            "description": "The chapter substantially executed its proposed plan within the grant period, adapting thoughtfully where reality diverged from the proposal. Grant spending is fully documented and well justified.",
+            "max_points": 5,
+            "order": 1,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.rubriccriterion",
+        "pk": 9,
+        "fields": {
+            "round": 2,
+            "name": "Demonstrated Results",
+            "description": "Results are measured against the metrics proposed in Phase 1 and honestly reported, including shortfalls. Evidence (data, prototype performance, pilot outcomes) is credible and verifiable.",
+            "max_points": 5,
+            "order": 2,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.rubriccriterion",
+        "pk": 10,
+        "fields": {
+            "round": 2,
+            "name": "Technical Learning & Iteration",
+            "description": "Final report shows rigorous engineering judgment: failures analyzed, design iterated, and conclusions supported by evidence gathered during development.",
+            "max_points": 5,
+            "order": 3,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.rubriccriterion",
+        "pk": 11,
+        "fields": {
+            "round": 2,
+            "name": "Sustainability & Path Forward",
+            "description": "Clear, realistic plan for continuing, scaling, or handing off the project beyond the competition, including resources required.",
+            "max_points": 5,
+            "order": 4,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.rubriccriterion",
+        "pk": 12,
+        "fields": {
+            "round": 2,
+            "name": "Final Presentation & Report Quality",
+            "description": "Final report and presentation are polished, well organized, and communicate the work compellingly to a multidisciplinary audience.",
+            "max_points": 5,
+            "order": 5,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.submissionitem",
+        "pk": 1,
+        "fields": {
+            "round": 1,
+            "label": "Proposal",
+            "description": "Your proposal as a PDF or PowerPoint file, 10 to 20 slides. PDF is recommended. Link to any video instead of putting it in the file.",
+            "kind": "file",
+            "file_types": "pdf,powerpoint",
+            "max_size_mb": 50,
+            "required": true,
+            "order": 1,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.submissionitem",
+        "pk": 2,
+        "fields": {
+            "round": 2,
+            "label": "Final report",
+            "description": "Your final report as a PDF.",
+            "kind": "file",
+            "file_types": "pdf",
+            "max_size_mb": 50,
+            "required": true,
+            "order": 1,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.submissionitem",
+        "pk": 3,
+        "fields": {
+            "round": 2,
+            "label": "Final presentation",
+            "description": "Your final presentation as a PDF or PowerPoint file.",
+            "kind": "file",
+            "file_types": "pdf,powerpoint",
+            "max_size_mb": 50,
+            "required": true,
+            "order": 2,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.submissionitem",
+        "pk": 4,
+        "fields": {
+            "round": 2,
+            "label": "Grant spending summary",
+            "description": "How the $400 grant was spent, with the receipts, as a PDF or a spreadsheet.",
+            "kind": "file",
+            "file_types": "pdf,spreadsheet",
+            "max_size_mb": 50,
+            "required": true,
+            "order": 3,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    },
+    {
+        "model": "competitions.submissionitem",
+        "pk": 5,
+        "fields": {
+            "round": 2,
+            "label": "Video",
+            "description": "Optional: a link to a video of the project, such as on YouTube or Google Drive.",
+            "kind": "link",
+            "file_types": "",
+            "max_size_mb": 50,
+            "required": false,
+            "order": 4,
+            "created": "2026-11-20T00:00:00Z",
+            "modified": "2026-11-20T00:00:00Z"
+        }
+    }
+]

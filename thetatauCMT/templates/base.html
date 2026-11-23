@@ -191,6 +191,19 @@
                       <li><a class="dropdown-item" href="{% url 'objectives:list' %}">Goals</a></li>
                       <li><a class="dropdown-item" href="{% url 'submissions:list' %}">Submissions</a></li>
                       <li><a class="dropdown-item" href="{% url 'ballots:votelist' %}">{% trans "My Ballots" %}</a></li>
+                      {% if case_competition or case_competition_judging %}
+                        <li><hr class="dropdown-divider"></li>
+                      {% endif %}
+                      {% if case_competition %}
+                        <li><a class="dropdown-item" href="{% url 'competitions:detail' case_competition.slug %}">{% trans "Case Competition" %}</a></li>
+                      {% endif %}
+                      {% if case_competition_judging %}
+                        <li>
+                          <a class="dropdown-item" href="{% url 'competitions:judging' %}">
+                            {% trans "My Judging" %}{% if case_competition_to_do %} <span class="badge rounded-pill bg-danger ms-1">{{ case_competition_to_do.count }}</span>{% endif %}
+                          </a>
+                        </li>
+                      {% endif %}
                     </ul>
                   </li>
 
@@ -216,6 +229,9 @@
                         <li><a class="dropdown-item" href="{% url 'events:pending' %}">{% trans "Pending Event Reviews" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'email_tracking:member_communication' %}">{% trans "Member Email Communication" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'support:list' %}">{% trans "Chapter Support Specialists" %}</a></li>
+                        {% if case_competition %}
+                          <li><a class="dropdown-item" href="{% url 'competitions:manage' case_competition.slug %}">{% trans "Case Competition" %}</a></li>
+                        {% endif %}
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="https://apps.ed.thetatau.org/authn/login?tpa_hint=oa2-cmt" target="_blank" rel="noopener noreferrer">{% trans "Training Portal" %}</a></li>
                       </ul>
@@ -232,6 +248,17 @@
                       <i class="fa-solid fa-list-check"></i>
                       <span class="badge rounded-pill bg-danger ms-1">{{ outstanding_ballot_count }}</span>
                       <span class="d-lg-none ms-2">{% trans "Ballots to vote" %}</span>
+                    </a>
+                  </li>
+                {% endif %}
+                {% if case_competition_to_do %}
+                  {% blocktrans asvar judging_to_do_label count counter=case_competition_to_do.count %}{{ counter }} Case Competition scorecard to submit{% plural %}{{ counter }} Case Competition scorecards to submit{% endblocktrans %}
+                  <li class="nav-item">
+                    <a id="judging-to-do" class="nav-link" href="{% url 'competitions:judging' %}"
+                       aria-label="{{ judging_to_do_label }}" title="{{ judging_to_do_label }}">
+                      <i class="fa-solid fa-scale-balanced"></i>
+                      <span class="badge rounded-pill bg-danger ms-1">{{ case_competition_to_do.count }}</span>
+                      <span class="d-lg-none ms-2">{% trans "Scorecards to submit" %}</span>
                     </a>
                   </li>
                 {% endif %}
@@ -285,6 +312,13 @@
                       <li><a class="dropdown-item" href="{% url 'users:profile' username=request.user.username %}">{% trans "My Profile" %}</a></li>
                       <li><a class="dropdown-item" href="{% url 'users:detail' %}">{% trans "Edit My Info" %}</a></li>
                       <li><a class="dropdown-item" href="{% url 'guides:role-guides' %}">{% trans "What am I responsible for?" %}</a></li>
+                      {% if case_competition_judging %}
+                        <li>
+                          <a class="dropdown-item" href="{% url 'competitions:judging' %}">
+                            {% trans "My Judging" %}{% if case_competition_to_do %} <span class="badge rounded-pill bg-danger ms-1">{{ case_competition_to_do.count }}</span>{% endif %}
+                          </a>
+                        </li>
+                      {% endif %}
                       {% if request.is_css %}
                         <li><a class="dropdown-item" href="{% url 'support:my_chapters' %}">{% trans "My Chapters" %}</a></li>
                       {% endif %}

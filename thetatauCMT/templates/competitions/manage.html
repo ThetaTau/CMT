@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% load competition_tags %}
+{% block title %}Chapters taking part: {{ competition.short_name }} {{ competition.year_label }}{% endblock %}
+
+{% block content %}
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h1 class="page-title mb-0">Chapters taking part</h1>
+    <div class="page-actions d-flex flex-wrap gap-2 ms-auto">
+      {% if manager %}
+        <div class="dropdown">
+          <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-download" aria-hidden="true"></i> Download CSV
+          </button>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{% url 'competitions:export' competition.slug 'participants' %}">Chapters taking part</a></li>
+            <li><a class="dropdown-item" href="{% url 'competitions:export' competition.slug 'entries' %}">Entries</a></li>
+            <li><a class="dropdown-item" href="{% url 'competitions:export' competition.slug 'scores' %}">Every score</a></li>
+          </ul>
+        </div>
+      {% endif %}
+      <a class="btn btn-outline-secondary" href="{% url 'competitions:detail' competition.slug %}">Back to the competition</a>
+    </div>
+  </div>
+  <p class="text-body-secondary">
+    The {{ competition.name }} {{ competition.year_label }}.
+    {% if manager %}
+      Give a chapter an extension, or upload on its behalf, from its row.
+    {% else %}
+      Read only: which chapters are taking part and which have submitted. Files and scores are for the
+      competition managers.
+    {% endif %}
+  </p>
+
+  <div class="row g-3 mb-3">
+    {% for round, progress in rounds %}
+      <div class="col-md-6">
+        <div class="card bg-body-tertiary h-100">
+          <div class="card-body">
+            <h2 class="h6 card-title">{{ round.name }}</h2>
+            <p class="mb-1">{{ progress }}</p>
+            {% if manager %}
+              <a class="small" href="{% url 'competitions:judges' competition.slug round.number %}">Judges</a> ·
+              <a class="small" href="{% url 'competitions:scores' competition.slug round.number %}">Scores and results</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <form method="get" class="row g-2 align-items-end mb-3" id="competition-status-filter">
+    <div class="col-auto">
+      <label class="form-label" for="filter-region">Region</label>
+      <select class="form-select" id="filter-region" name="region">
+        <option value="">Every region</option>
+        {% for option in regions %}
+          <option value="{{ option.slug }}"{% if option.slug == region %} selected{% endif %}>{{ option.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto form-check ms-2 mb-2">
+      <input class="form-check-input" type="checkbox" id="filter-withdrawn" name="withdrawn" value="1"{% if show_withdrawn %} checked{% endif %}>
+      <label class="form-check-label" for="filter-withdrawn">Show withdrawn chapters</label>
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-outline-primary" type="submit">Filter</button>
+    </div>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table table-striped align-middle" id="competition-status">
+      <thead>
+        <tr>
+          <th scope="col">Chapter</th>
+          <th scope="col">Region</th>
+          <th scope="col">Registered</th>
+          <th scope="col">Main contacts</th>
+          {% for round, progress in rounds %}<th scope="col">{{ round.name }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>
+              {{ row.chapter.name }}
+              {% if row.chapter.candidate_chapter %}<span class="badge text-bg-light border">Candidate</span>{% endif %}
+              {% if row.withdrawn %}<span class="badge text-bg-secondary">Withdrawn</span>{% endif %}
+              {% if is_admin and row.participant %}
+                <a class="small ms-1" href="{% url 'admin:competitions_participant_change' row.participant.pk %}" title="Edit the registration (Admins only)">
+                  <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i><span class="visually-hidden">Edit the registration</span>
+                </a>
+              {% endif %}
+            </td>
+            <td>{{ row.chapter.region.name }}</td>
+            <td>
+              {% if row.participant %}
+                {{ row.participant.get_source_display }}
+                <div class="small text-body-secondary">{{ row.participant.created|date:"M j, Y" }}</div>
+              {% else %}None{% endif %}
+            </td>
+            <td>
+              {% if row.participant %}
+                {% for person in row.participant.contacts.all %}{{ person.name }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}
+              {% else %}None{% endif %}
+            </td>
+            {% for cell in row.cells %}
+              <td>
+                {% if cell.may_enter or cell.entry %}
+                  <span class="badge {% if cell.status == 'submitted' %}text-bg-success{% elif cell.status == 'in_progress' %}text-bg-warning{% elif cell.status == 'incomplete' %}text-bg-danger{% else %}text-bg-secondary{% endif %}">{{ cell.status_label }}</span>
+                  {% if cell.submitted %}<div class="small text-body-secondary">{{ cell.submitted }}</div>{% endif %}
+                  {% if cell.extended %}<div class="small">Extended to {{ cell.extended }}</div>{% endif %}
+                  {% if manager and cell.on_behalf %}<div class="small text-body-secondary">Last saved by a manager</div>{% endif %}
+                  {% if cell.entry and cell.entry.place and cell.round.is_published %}<div class="small">{{ cell.entry.place|ordinal }} place</div>{% endif %}
+                  {% if cell.round.is_published and cell.entry.advanced %}<div class="small">Regional Qualifier</div>{% endif %}
+                  {% if manager %}
+                    <div class="d-flex flex-wrap gap-2 mt-1">
+                      {% if cell.entry and cell.started %}<a class="small" href="{% url 'competitions:entry' cell.entry.public_id %}">View</a>{% endif %}
+                      {% if cell.can_act %}
+                        <a class="small" href="{% url 'competitions:submit_on_behalf' competition.slug cell.round.number row.chapter.slug %}">Upload on behalf</a>
+                        <a class="small" href="{% url 'competitions:extension' competition.slug cell.round.number row.chapter.slug %}">Extension</a>
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                {% else %}
+                  <span class="text-body-secondary">{{ cell.note|default:"None" }}</span>
+                {% endif %}
+              </td>
+            {% endfor %}
+          </tr>
+        {% empty %}
+          <tr><td colspan="{{ rounds|length|add:4 }}">No chapter is taking part yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock content %}

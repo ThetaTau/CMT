@@ -1,0 +1,19 @@
+{% comment %}
+The Case Competition card on the home page (S24). Context: case_competition_items, from
+competitions.services.home_items.
+{% endcomment %}
+{% if case_competition_items %}
+  <div class="card bg-body-tertiary text-body mb-3" id="case-competition-card">
+    <div class="card-body">
+      <h2 class="h5 card-title"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> Case Competition</h2>
+      <ul class="list-unstyled mb-0">
+        {% for item in case_competition_items %}
+          <li class="d-flex flex-wrap align-items-center gap-2{% if not forloop.last %} mb-2{% endif %}">
+            <span>{{ item.text }}</span>
+            <a class="btn btn-sm btn-primary" href="{{ item.url }}">{{ item.action }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+{% endif %}

@@ -1,0 +1,102 @@
+{% comment %}
+The "Your chapter" panel on the competition page (NECCWI-4). Context: panel
+(competitions.services.ChapterPanel), competition. The id is the catalog's url_fragment.
+{% endcomment %}
+<section id="your-chapter" class="card mb-4" aria-labelledby="your-chapter-title">
+  <div class="card-body">
+    {% if not panel %}
+      <h2 class="h4 card-title" id="your-chapter-title">Your chapter</h2>
+      <p class="mb-0">Current members and PNMs of an active chapter register it and submit its entry.</p>
+    {% else %}
+      <h2 class="h4 card-title" id="your-chapter-title">Your chapter: {{ panel.chapter.full_name }}</h2>
+      {% if not panel.is_member and not panel.view_only %}
+        <p class="mb-0">
+          Current members and PNMs of the chapter register it and submit its entry. A competition
+          manager can upload for anyone else.
+        </p>
+      {% else %}
+        {% if panel.view_only %}
+          <p class="text-body-secondary">You see this chapter as its Chapter Support Specialist, view only.</p>
+        {% endif %}
+        {% if panel.registered %}
+          <p>
+            <span class="badge text-bg-success">Registered</span>
+            Main contacts:
+            {% for person in panel.participant.contacts.all %}{{ person.name }}{% if not forloop.last %}, {% endif %}{% empty %}None named yet{% endfor %}.
+            {% if panel.can_update %}
+              <a class="btn btn-sm btn-outline-primary ms-1" href="{% url 'competitions:intent' competition.slug %}">Update the registration</a>
+            {% endif %}
+          </p>
+        {% elif panel.withdrawn %}
+          <p>
+            <span class="badge text-bg-secondary">Withdrawn</span>
+            The chapter withdrew, so it gets no reminders.
+            {% if panel.can_update %}
+              <a class="btn btn-sm btn-outline-primary ms-1" href="{% url 'competitions:intent' competition.slug %}">Rejoin</a>
+            {% endif %}
+          </p>
+        {% elif panel.can_register %}
+          <p>
+            <span class="badge text-bg-warning">Not registered</span>
+            Any member can register the chapter and name its main contacts until {{ intent_closes }}.
+            <a class="btn btn-sm btn-primary ms-1" href="{% url 'competitions:intent' competition.slug %}">Register the chapter</a>
+          </p>
+        {% else %}
+          <p>
+            <span class="badge text-bg-secondary">Not registered</span>
+            {% if panel.late_entry_open and panel.entry_round %}
+              Until the {{ panel.entry_round.name }} window closes, any member can still enter by uploading the
+              chapter's {{ panel.entry_round.name|lower }}, which registers the chapter.
+            {% else %}
+              The chapter is not taking part this year.
+            {% endif %}
+          </p>
+        {% endif %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0" id="your-chapter-rounds">
+            <thead>
+              <tr>
+                <th scope="col">Round</th>
+                <th scope="col">Due</th>
+                <th scope="col">Status</th>
+                <th scope="col"><span class="visually-hidden">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in panel.rounds %}
+                <tr>
+                  <td>{{ row.round.name }}</td>
+                  <td>{{ row.due }}{% if row.extended %} <span class="badge text-bg-info">Extended</span>{% endif %}</td>
+                  <td>
+                    {% if row.result %}
+                      <strong>{{ row.result }}</strong>
+                    {% elif not row.may_enter %}
+                      {% if row.not_selected %}Not selected{% elif row.round.eligibility == "advanced" %}Regional Qualifiers only{% else %}None{% endif %}
+                    {% else %}
+                      {{ row.status_label }}
+                      {% if row.missing and row.status == "in_progress" %}
+                        <div class="small text-body-secondary">Still needed: {{ row.missing|join:", " }}</div>
+                      {% elif row.missing and row.status == "incomplete" %}
+                        <div class="small text-body-secondary">Missing at the deadline: {{ row.missing|join:", " }}</div>
+                      {% endif %}
+                    {% endif %}
+                  </td>
+                  <td class="text-end">
+                    {% if row.can_submit %}
+                      <a class="btn btn-sm btn-primary" href="{% url 'competitions:submit' competition.slug row.round.number %}">
+                        {% if row.status == "not_started" %}Start the entry{% else %}Edit the entry{% endif %}
+                      </a>
+                    {% endif %}
+                    {% if row.can_view %}
+                      <a class="btn btn-sm btn-outline-secondary" href="{% url 'competitions:entry' row.entry.public_id %}">View the entry</a>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+</section>

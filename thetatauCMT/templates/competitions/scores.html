@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% load static competition_tags %}
+{% block title %}Scores: {{ round.name }}{% endblock %}
+
+{% block css %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'css/competitions.css' %}">
+{% endblock css %}
+
+{% block content %}
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h1 class="page-title mb-0">Scores and results: {{ round.name }}</h1>
+    <div class="page-actions d-flex flex-wrap gap-2 ms-auto">
+      <a class="btn btn-outline-secondary" href="{% url 'competitions:judges' competition.slug round.number %}">Judges</a>
+      <a class="btn btn-outline-secondary" href="{% url 'competitions:export' competition.slug 'scores' %}"><i class="fas fa-download" aria-hidden="true"></i> Every score (CSV)</a>
+      <a class="btn btn-outline-secondary" href="{% url 'competitions:detail' competition.slug %}">Back to the competition</a>
+    </div>
+  </div>
+  <p class="text-body-secondary">
+    {{ competition.name }} {{ competition.year_label }}. An entry's score is the average of its submitted
+    scorecards' totals; drafts, removed judges and stepped-aside entries do not count. Ranks are within each
+    region; equal averages are ties. Only managers see this page.
+  </p>
+
+  {% if round.is_published %}
+    <div class="alert alert-success">
+      {% if advance %}The results were published{% else %}The winners were announced{% endif %} {{ published }}.
+      The decisions and scorecards are final.
+    </div>
+  {% elif not judging_started %}
+    <div class="alert alert-info">Judging has not started: the window has not closed yet.</div>
+  {% endif %}
+
+  {% if warnings %}
+    <div class="alert alert-warning">
+      <ul class="mb-0">{% for warning in warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+
+  {% if advance and not round.is_published and count %}
+    <div class="card bg-body-tertiary mb-3">
+      <div class="card-body">
+        <h2 class="h6 card-title">Pre-select</h2>
+        <p class="mb-2">
+          Marks the top {{ round.advance_per_region|default:"every" }} eligible entr{{ round.advance_per_region|pluralize:"y,ies" }} in each region
+          {% if round.min_average_to_advance %}with an average of at least {{ round.min_average_to_advance }}{% endif %}
+          as qualifying, and every other eligible entry as not. The most in all is {{ round.advance_total|default:"no limit" }}.
+          It replaces every decision; change any of them afterwards.
+          {% if preselection.selected %}It would choose {{ preselection.selected|length }} entr{{ preselection.selected|length|pluralize:"y,ies" }}, marked below.{% endif %}
+        </p>
+        {% if preselection.warnings %}
+          <ul class="mb-2">{% for warning in preselection.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
+        {% endif %}
+        <form method="post" data-confirm="Replace every decision with the pre-selection?">
+          {% csrf_token %}
+          <button class="btn btn-outline-primary" type="submit" name="action" value="preselect">Pre-select</button>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if count %}
+    <div class="d-flex flex-wrap align-items-center gap-2 mt-4">
+      <p class="small text-body-secondary mb-0">
+        Open an entry's row for its average on each criterion, the spread between its judges' totals (highest
+        minus lowest) and its scorecards.
+      </p>
+      <div class="d-flex gap-2 ms-auto">
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-competition-details="show">
+          <i class="fa-solid fa-angles-down" aria-hidden="true"></i> Open every entry
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-competition-details="hide">
+          <i class="fa-solid fa-angles-up" aria-hidden="true"></i> Close every entry
+        </button>
+      </div>
+    </div>
+  {% endif %}
+
+  {% for region, rows in regions %}
+    <h2 class="h5 mt-4">{{ region.name }}</h2>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle competition-scores">
+        <thead>
+          <tr>
+            <th scope="col"><span class="visually-hidden">Scores for each criterion</span></th>
+            <th scope="col">Rank</th>
+            <th scope="col">Chapter and entry</th>
+            <th scope="col" class="text-end">Scorecards</th>
+            <th scope="col" class="text-end">Average</th>
+            <th scope="col">{% if advance %}Decision{% else %}Place{% endif %}</th>
+            <th scope="col">Eligible</th>
+          </tr>
+        </thead>
+        {% for row in rows %}
+          {% with entry=row.entry %}
+            {# One tbody per entry, so its scores row stays with it and the stripes follow entries. #}
+            <tbody>
+              <tr id="entry-{{ entry.pk }}"{% if not entry.eligible %} class="text-body-secondary"{% endif %}>
+                <td>
+                  <button class="btn btn-sm btn-link competition-details-toggle" type="button"
+                          data-bs-toggle="collapse" data-bs-target="#scores-{{ entry.pk }}"
+                          aria-expanded="false" aria-controls="scores-{{ entry.pk }}" title="Scores for each criterion">
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                    <span class="visually-hidden">Scores for each criterion: {{ entry.chapter.name }}</span>
+                  </button>
+                </td>
+                <td>
+                  {{ row.rank|default:"None" }}{% if row.tied %} <span class="badge text-bg-warning">Tie</span>{% endif %}
+                </td>
+                <td class="competition-entry-cell">
+                  <a href="{% url 'competitions:entry' entry.public_id %}">{{ entry.chapter.name }}</a>
+                  <div class="small">{{ entry.title|truncatechars:70 }}</div>
+                  {% if advance and entry.pk in preselection.selected and not round.is_published %}<span class="badge text-bg-info">Pre-selection</span>{% endif %}
+                </td>
+                <td class="text-end">{{ row.counted|length }} of {{ row.expected }}</td>
+                <td class="text-end"><strong>{{ row.average|default:"None" }}</strong></td>
+                <td>
+                  {% if round.is_published %}
+                    {% if advance %}{% if entry.advanced %}Qualified{% elif entry.advanced is False %}Not selected{% else %}None{% endif %}{% else %}{% if entry.place %}{{ entry.place|ordinal }} place{% else %}None{% endif %}{% endif %}
+                  {% elif entry.eligible %}
+                    <form method="post">
+                      {% csrf_token %}
+                      <input type="hidden" name="entry" value="{{ entry.pk }}">
+                      <div class="input-group input-group-sm flex-nowrap">
+                        {% if advance %}
+                          <input type="hidden" name="action" value="decide">
+                          <select class="form-select" name="advanced" aria-label="Decision for {{ entry.chapter.name }}">
+                            <option value=""{% if entry.advanced is None %} selected{% endif %}>No decision</option>
+                            <option value="yes"{% if entry.advanced %} selected{% endif %}>Qualifies</option>
+                            <option value="no"{% if entry.advanced is False %} selected{% endif %}>Does not qualify</option>
+                          </select>
+                        {% else %}
+                          <input type="hidden" name="action" value="place">
+                          <select class="form-select" name="place" aria-label="Place for {{ entry.chapter.name }}">
+                            <option value="">No place</option>
+                            {% for place in places %}<option value="{{ place }}"{% if entry.place == place %} selected{% endif %}>{{ place|ordinal }}</option>{% endfor %}
+                          </select>
+                        {% endif %}
+                        <button class="btn btn-outline-primary" type="submit">Save</button>
+                      </div>
+                    </form>
+                  {% else %}None{% endif %}
+                </td>
+                <td>
+                  {% if entry.eligible %}
+                    {% if not round.is_published %}
+                      <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="entry" value="{{ entry.pk }}">
+                        <div class="input-group input-group-sm flex-nowrap competition-ineligible">
+                          <input class="form-control" type="text" name="reason" required placeholder="Reason the chapter sees" aria-label="Reason {{ entry.chapter.name }} is not eligible">
+                          <button class="btn btn-outline-danger" type="submit" name="action" value="ineligible">Not eligible</button>
+                        </div>
+                      </form>
+                    {% else %}Yes{% endif %}
+                  {% else %}
+                    <span class="badge text-bg-secondary">Not eligible</span>
+                    <div class="small">{{ entry.ineligible_reason }}</div>
+                    {% if not round.is_published %}
+                      <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="entry" value="{{ entry.pk }}">
+                        <button class="btn btn-sm btn-link p-0" type="submit" name="action" value="eligible">Eligible again</button>
+                      </form>
+                    {% endif %}
+                  {% endif %}
+                </td>
+              </tr>
+              <tr class="collapse competition-score-details" id="scores-{{ entry.pk }}">
+                <td></td>
+                <td colspan="6">
+                  <div class="competition-score-grid">
+                    {% for criterion, average in row.criterion_scores %}
+                      <div>
+                        <div class="small text-body-secondary">{{ criterion.name }}</div>
+                        <div class="fw-semibold">{{ average|default:"None" }}</div>
+                      </div>
+                    {% endfor %}
+                    <div>
+                      <div class="small text-body-secondary">Spread</div>
+                      <div class="fw-semibold">{{ row.spread|default_if_none:"None" }}</div>
+                    </div>
+                  </div>
+                  <p class="small mt-2 mb-1">
+                    <span class="text-body-secondary">Scorecards:</span>
+                    {% for card in row.counted %}<a href="{% url 'competitions:scorecard' card.assignment.public_id %}">{{ card.assignment.judge.user.name }}: {{ card.total }}</a>{% if not forloop.last %}, {% endif %}{% empty %}none submitted yet{% endfor %}{% if row.missing %}; {{ row.missing }} still to come{% endif %}.
+                  </p>
+                </td>
+              </tr>
+            </tbody>
+          {% endwith %}
+        {% endfor %}
+      </table>
+    </div>
+  {% empty %}
+    <p>No complete entries yet.</p>
+  {% endfor %}
+
+  {% if not round.is_published and count %}
+    <div class="card mt-4" id="publish">
+      <div class="card-body">
+        <h2 class="h5 card-title">{% if advance %}Publish the results{% else %}Announce the winners{% endif %}</h2>
+        <p>
+          {% if advance %}
+            Each chapter with an entry learns its result and can read the judges' feedback{% if not round.share_feedback %} (not shared this round){% endif %}.
+            The Regional Qualifiers' entries become visible to every member, each chapter is emailed, and the
+            qualifiers get the Regional Qualifier award. Scorecards lock.
+          {% else %}
+            The winners appear on the competition page, every final submission becomes visible to every member,
+            each finalist chapter is emailed and the winners get their awards. Do this at Convention.
+          {% endif %}
+        </p>
+        {% if blockers %}
+          <div class="alert alert-danger"><ul class="mb-0">{% for blocker in blockers %}<li>{{ blocker }}</li>{% endfor %}</ul></div>
+        {% else %}
+          <form method="post" data-confirm="{% if advance %}Publish the results now? Chapters are emailed at once.{% else %}Announce the winners now? Finalists are emailed at once.{% endif %}">
+            {% csrf_token %}
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="checkbox" id="publish-confirm" name="confirm" value="yes" required>
+              <label class="form-check-label" for="publish-confirm">I have checked the decisions{% if warnings %} and the warnings above{% endif %}.</label>
+            </div>
+            <button class="btn btn-primary" type="submit" name="action" value="publish">{% if advance %}Publish the results{% else %}Announce the winners{% endif %}</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+{% endblock content %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script src="{% static 'js/competitions.js' %}"></script>
+{% endblock javascript %}

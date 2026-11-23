@@ -130,6 +130,7 @@ urlpatterns = [
     path("transitions/", include("thetatauCMT.transitions.urls", namespace="transitions")),
     path("biglittle/", include("thetatauCMT.biglittle.urls", namespace="biglittle")),
     path("support/", include("thetatauCMT.support.urls", namespace="support")),
+    path("competitions/", include("thetatauCMT.competitions.urls", namespace="competitions")),
     path(
         "pledgepins/",
         RedirectView.as_view(url="/forms/pledge-pins/", permanent=True),

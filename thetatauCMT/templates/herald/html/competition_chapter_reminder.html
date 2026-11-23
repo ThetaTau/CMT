@@ -1,0 +1,51 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}{{ subject }}{% endblock %}
+{% block content %}
+<h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 30px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">
+  {% if kind == "opens_soon" %}The {{ round.name }} window opens soon{% elif kind == "open" %}The {{ round.name }} window is open{% else %}{{ round.name }} due {{ due_phrase }}{% endif %}</h2>
+<p>Greetings,</p>
+{% if kind == "opens_soon" %}
+<p>
+  The {{ round.name }} window of the {{ competition.name }} opens on <b>{{ opens }}</b>. Entries are due by
+  <b>{{ due }}</b>.
+</p>
+{% elif kind == "open" %}
+<p>
+  The {{ round.name }} window of the {{ competition.name }} is open. The {{ chapter.full_name }}'s entry is due by
+  <b>{{ due }}</b>{% if extended %}, the chapter's extended deadline{% endif %}.
+</p>
+{% else %}
+<p>
+  The {{ chapter.full_name }}'s {{ round.name }} entry is due {{ due_phrase }}, by <b>{{ due }}</b>{% if extended %},
+  the chapter's extended deadline{% endif %}, and it is not complete yet.
+</p>
+{% endif %}
+{% if qualifiers_only %}
+<p>This window is for the Regional Qualifiers only.</p>
+{% endif %}
+{% if kind == "opens_soon" %}
+<p>What to upload:</p>
+<ul>
+  <li>A project title and a summary</li>
+  {% for item in items %}<li>{{ item.label }}{% if not item.required %} (optional){% endif %}</li>{% endfor %}
+</ul>
+{% else %}
+<p>
+  Status: <b>{{ status }}</b>.{% if missing %} Still needed: {{ missing|join:", " }}.{% endif %}
+</p>
+{% endif %}
+<p>
+  Any current member or PNM of the chapter can upload the entry and save it as often as needed until the
+  deadline: <a href="{{ submit_url }}">{{ submit_url }}</a>
+</p>
+{% if not contacts %}
+<p>
+  The chapter is registered for the competition. Name the main contacts in charge of the entry on the
+  chapter's registration page: <a href="{{ intent_url }}">{{ intent_url }}</a>
+</p>
+{% endif %}
+<p>
+  These reminders stop once the entry is complete, or if the chapter withdraws on its registration page.
+</p>
+{% include "herald/html/_competition_footer.html" %}
+{% endblock content %}

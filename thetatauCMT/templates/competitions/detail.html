@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}{{ competition.short_name }} {{ competition.year_label }}{% endblock %}
+
+{% block content %}
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h1 class="page-title mb-0">{{ competition.name }} {{ competition.year_label }}</h1>
+    <div class="page-actions d-flex flex-wrap gap-2 ms-auto">
+      {% if is_judge and not my_judging %}
+        <a class="btn btn-outline-primary" href="{% url 'competitions:judging' %}"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> My Judging</a>
+      {% endif %}
+      {% if can_view_status %}
+        <a class="btn btn-outline-secondary" href="{% url 'competitions:manage' competition.slug %}">
+          <i class="fa-solid fa-table-list" aria-hidden="true"></i> {% if manager %}Manage{% else %}Chapters taking part{% endif %}
+        </a>
+      {% endif %}
+      <a class="btn btn-outline-secondary" href="{% url 'competitions:list' %}">All years</a>
+    </div>
+  </div>
+  {% if not competition.is_published %}
+    <div class="alert alert-warning">Not published yet: only the competition managers see this page.</div>
+  {% endif %}
+
+  {% for row in my_judging %}
+    <div class="alert alert-primary d-flex flex-wrap align-items-center gap-2" id="judging-round-{{ row.round.number }}">
+      <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>
+      <span class="me-auto">
+        <strong>You are a judge for the {{ row.round.name }}.</strong>
+        {% if not row.started %}
+          Judging starts when its window closes, {{ row.closes }}. You will get an email then.
+        {% elif row.to_do %}
+          {{ row.to_do }} of {{ row.assigned }} scorecard{{ row.assigned|pluralize }} still to submit{% if row.deadline %}, due {{ row.deadline }}{% endif %}.
+        {% elif row.assigned %}
+          Nothing left to score. You can change your scorecards until the results are published.
+        {% else %}
+          No entries to score yet.
+        {% endif %}
+      </span>
+      <a class="btn btn-sm {% if row.to_do %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'competitions:judging' %}">
+        {% if row.to_do %}Score the entries{% else %}My Judging{% endif %}
+      </a>
+    </div>
+  {% endfor %}
+
+  <section class="mb-4" aria-labelledby="case-title">
+    <h2 class="h4" id="case-title">The case: {{ competition.case_title }}</h2>
+    {% if competition.case_description %}<div class="ck-content">{{ competition.case_description|safe }}</div>{% endif %}
+    {% if competition.announcement %}
+      <p><a href="{{ competition.announcement.url }}" target="_blank" rel="noopener"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> The announcement</a></p>
+    {% endif %}
+  </section>
+
+  {% include "competitions/_your_chapter.html" %}
+
+  {% if competition.intent_opens_at or competition.intent_closes_at %}
+    <p>
+      <strong>Intent to compete:</strong> {{ intent_opens }} to {{ intent_closes }}{% if intent_open %} <span class="badge text-bg-success">Open</span>{% endif %}.
+      {% if late_entry_open and entry_round %}
+        A chapter that did not declare its intent can still enter by uploading its {{ entry_round.name|lower }}
+        before the {{ entry_round.name }} window closes.
+      {% endif %}
+      {% if qualifier_round %}Only the Regional Qualifiers submit the {{ qualifier_round.name|lower }}.{% endif %}
+    </p>
+  {% endif %}
+
+  {% for row in rounds %}
+    <section class="card mb-4" aria-labelledby="round-{{ row.round.number }}-title">
+      <div class="card-body">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+          <h2 class="h4 card-title mb-0" id="round-{{ row.round.number }}-title">{{ row.round.name }}</h2>
+          <span class="badge {% if row.state == 'open' %}text-bg-success{% elif row.state == 'published' %}text-bg-primary{% else %}text-bg-secondary{% endif %}">{{ row.state_label }}</span>
+          {% if row.qualifiers_only %}<span class="badge text-bg-info">Regional Qualifiers only</span>{% endif %}
+          {% if manager %}
+            <div class="ms-auto d-flex flex-wrap gap-2">
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'competitions:judges' competition.slug row.round.number %}">Judges</a>
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'competitions:scores' competition.slug row.round.number %}">Scores and results</a>
+            </div>
+          {% endif %}
+        </div>
+        <dl class="row mb-2">
+          <dt class="col-sm-3">Window</dt>
+          <dd class="col-sm-9">{{ row.opens }} to {{ row.closes }}</dd>
+          <dt class="col-sm-3">Judging</dt>
+          <dd class="col-sm-9">Scorecards due {{ row.judging_closes }}</dd>
+        </dl>
+        {% if row.round.instructions %}<div class="ck-content mb-2">{{ row.round.instructions|safe }}</div>{% endif %}
+        <h3 class="h6">What to upload</h3>
+        <ul>
+          <li>A project title and a summary of up to 1,000 characters</li>
+          {% for item, types in row.items %}
+            <li>
+              {{ item.label }}{% if not item.required %} (optional){% endif %}:
+              {% if item.kind == "link" %}a link{% else %}{{ types }}, up to {{ item.max_size_mb }} MB{% endif %}
+              {% if item.description %}<div class="small text-body-secondary">{{ item.description }}</div>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+        {% if row.criteria %}
+          <h3 class="h6">Rubric</h3>
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr><th scope="col">Criterion</th><th scope="col">What judges look for</th><th scope="col" class="text-end">Points</th></tr>
+              </thead>
+              <tbody>
+                {% for criterion in row.criteria %}
+                  <tr>
+                    <td>{{ criterion.name }}</td>
+                    <td>{{ criterion.description|linebreaksbr|default:"None" }}</td>
+                    <td class="text-end">{{ row.round.score_min }} to {{ criterion.max_points }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr><th scope="row" colspan="2">Total</th><td class="text-end">{{ row.max_total }}</td></tr>
+              </tfoot>
+            </table>
+          </div>
+        {% endif %}
+        {% if row.showcase %}
+          <p class="mb-0">
+            <a class="btn btn-sm btn-primary" href="{% url 'competitions:results' competition.slug row.round.number %}">
+              {% if row.round.selection == "advance" %}See the Regional Qualifiers{% else %}See the winners{% endif %}
+            </a>
+          </p>
+        {% endif %}
+      </div>
+    </section>
+  {% endfor %}
+
+  {% if key_dates %}
+    <section class="mb-4" aria-labelledby="key-dates-title">
+      <h2 class="h4" id="key-dates-title">Key dates</h2>
+      <ul>
+        {% for key_date in key_dates %}
+          <li>
+            <strong>{{ key_date.date|date:"D, M j, Y" }}:</strong>
+            {% if key_date.link %}<a href="{{ key_date.link }}" target="_blank" rel="noopener">{{ key_date.label }}</a>{% else %}{{ key_date.label }}{% endif %}
+            {% if key_date.description %}<div class="small text-body-secondary">{{ key_date.description }}</div>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {% if competition.about %}
+    <section class="mb-4" aria-labelledby="about-title">
+      <h2 class="h4" id="about-title">About the competition</h2>
+      <div class="ck-content">{{ competition.about|safe }}</div>
+    </section>
+  {% endif %}
+  {% if competition.resources %}
+    <section class="mb-4" aria-labelledby="resources-title">
+      <h2 class="h4" id="resources-title">Resources</h2>
+      <div class="ck-content">{{ competition.resources|safe }}</div>
+    </section>
+  {% endif %}
+  <p>
+    Questions? Contact {% if contact %}{{ contact.name }}, {% endif %}the competition contact, at
+    <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.
+    Every time on this page is in {{ competition.zone_label }} time.
+  </p>
+{% endblock content %}

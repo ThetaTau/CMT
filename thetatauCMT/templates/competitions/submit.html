@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% load static crispy_forms_tags %}
+{% block title %}{{ round.name }}: {{ chapter.full_name }}{% endblock %}
+
+{% block css %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'css/competitions.css' %}">
+{% endblock css %}
+
+{% block content %}
+  {{ team.media }}
+  <div class="page-header d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h1 class="page-title mb-0">{{ chapter.full_name }}: {{ round.name }}</h1>
+    <a class="btn btn-outline-secondary ms-auto" href="{% if on_behalf %}{% url 'competitions:manage' competition.slug %}{% else %}{% url 'competitions:detail' competition.slug %}#your-chapter{% endif %}">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i> Back
+    </a>
+  </div>
+  {% if on_behalf %}
+    <div class="alert alert-warning">
+      You are saving on the {{ chapter.full_name }}'s behalf as a competition manager. Each save is recorded as
+      yours, and the chapter gets the receipt when the entry is complete.
+    </div>
+  {% endif %}
+
+  <div class="card bg-body-tertiary mb-3" id="entry-status">
+    <div class="card-body">
+      <p class="mb-1">
+        <strong>Status:</strong> {{ status_label }}
+        {% if status == "submitted" %}<span class="badge text-bg-success ms-1">Complete</span>{% endif %}
+      </p>
+      <p class="mb-1"><strong>Due:</strong> {{ due }}{% if extended %} <span class="badge text-bg-info">Extended</span>{% endif %}</p>
+      {% if missing and started %}
+        <p class="mb-1"><strong>{% if past_due %}Missing at the deadline:{% else %}Still needed:{% endif %}</strong> {{ missing|join:", " }}</p>
+      {% elif missing and not past_due %}
+        <p class="mb-1"><strong>Still needed:</strong> {{ missing|join:", " }}</p>
+      {% endif %}
+      <p class="mb-0 small text-body-secondary">
+        Last saved: {{ last_saved }}{% if entry.last_saved_by %} by {{ entry.last_saved_by.name }}{% if entry.last_saved_on_behalf %} on the chapter's behalf{% endif %}{% endif %}.
+        {% if entry and started %}<a href="{% url 'competitions:entry' entry.public_id %}">View the entry</a>{% endif %}
+      </p>
+    </div>
+  </div>
+
+  {% if not editable %}
+    {% if state == "upcoming" %}
+      <p>The {{ round.name }} window opens on {{ opens }}.</p>
+    {% else %}
+      <p>The {{ round.name }} window is closed, so the entry can no longer be changed here.</p>
+    {% endif %}
+  {% else %}
+    <p>
+      Any current member or PNM of the chapter can save the entry as often as needed until the deadline. There is
+      no separate Submit button: the entry counts as submitted once the title, the summary and every required file
+      are in, and a receipt goes to the chapter after each save of a complete entry. A new file replaces the
+      current one.
+    </p>
+    {% if round.instructions %}<div class="ck-content mb-3">{{ round.instructions|safe }}</div>{% endif %}
+    <form id="competition-entry-form" class="competition-form" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+      {{ form.title|as_crispy_field }}
+      {{ form.summary|as_crispy_field }}
+      <h2 class="h5 mt-4">Files and links</h2>
+      {% for item, field, current in form.item_fields %}
+        <div class="mb-3" id="item-{{ item.pk }}">
+          {% if current %}
+            <p class="mb-1 small">
+              Current{% if item.kind == "link" %} link{% else %} file{% endif %}:
+              <a href="{% url 'competitions:file' current.public_id %}" target="_blank" rel="noopener">{{ current }}</a>
+              {% if current.uploaded_by %}(saved by {{ current.uploaded_by.name }}){% endif %}
+            </p>
+          {% endif %}
+          {{ field|as_crispy_field }}
+          {% if item.required and not current %}<p class="small text-warning-emphasis mb-0">Required.</p>{% endif %}
+        </div>
+      {% endfor %}
+
+      <h2 class="h5 mt-4">Team</h2>
+      <p class="text-body-secondary">Optional. Members and PNMs of the chapter on the team, with their role.</p>
+      {{ team.management_form }}
+      {% if team.non_form_errors %}<div class="alert alert-danger">{{ team.non_form_errors }}</div>{% endif %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle competition-team" id="competition-team">
+          <thead>
+            <tr>
+              <th scope="col">Member</th>
+              <th scope="col">Role on the team</th>
+              <th scope="col">Remove</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for member_form in team %}
+              <tr>
+                <td>
+                  {% for hidden in member_form.hidden_fields %}{{ hidden }}{% endfor %}
+                  {{ member_form.user }}
+                  {% for error in member_form.user.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                  {% for error in member_form.non_field_errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </td>
+                <td>
+                  {{ member_form.team_role }}
+                  {% for error in member_form.team_role.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </td>
+                <td>{% if member_form.instance.pk %}{{ member_form.DELETE }}{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="small text-body-secondary">Need more rows? Save, and three empty rows come back.</p>
+      <button class="btn btn-primary" type="submit">Save the entry</button>
+    </form>
+  {% endif %}
+{% endblock content %}

@@ -1,0 +1,29 @@
+{% extends "herald/html/base_email.html" %}
+{% block title %}{{ subject }}{% endblock %}
+{% block content %}
+<h2 class="null" style="margin: 0;padding: 0;display: block;font-family: Helvetica;font-size: 30px;font-style: normal;font-weight: bold;line-height: 125%;letter-spacing: -1px;text-align: left;color: #606060 !important;">
+  {% if kind == "judging_open" %}{{ round.name }} judging is open{% else %}Scorecards due {{ due_phrase }}{% endif %}</h2>
+<p>Greetings {{ judge.user.first_name|default:judge.user.name }},</p>
+{% if kind == "judging_open" %}
+<p>
+  Thank you for judging the {{ competition.name }} {{ competition.year_label }}. The {{ round.name }} window has
+  closed, and <b>{{ assigned }}</b> entr{{ assigned|pluralize:"y is,ies are" }} waiting for your scores.
+</p>
+{% else %}
+<p>
+  You have <b>{{ to_do }}</b> of {{ assigned }} {{ round.name }} scorecard{{ assigned|pluralize }} still to submit.
+</p>
+{% endif %}
+<p>
+  Scorecards are due by <b>{{ deadline }}</b>. Score each entry against the rubric, with a comment on each
+  criterion and overall feedback for the chapter. Chapters read the feedback without your name. Save a draft at
+  any time, and submit each scorecard when it is done.
+</p>
+<p>
+  Open My Judging: <a href="{{ judging_url }}">{{ judging_url }}</a>
+</p>
+<p>
+  If you have a conflict of interest with an entry, step aside from it on its scorecard, with a reason.
+</p>
+{% include "herald/html/_competition_footer.html" %}
+{% endblock content %}
