@@ -8,6 +8,7 @@ scope with the region dropdown at the top of the layout.
 
 import bisect
 import datetime
+import re
 from collections import defaultdict
 
 import pandas as pd
@@ -95,6 +96,9 @@ TOP_SOCIETIES = 10
 # A sign-in within this many days counts as using CMT.
 CMT_USE_DAYS = 90
 
+# Candidate chapters are named "<school> Candidate Chapter".
+CANDIDATE_CHAPTER_SUFFIX = re.compile(r"\s+candidate\s+chapter\s*$", re.IGNORECASE)
+
 
 def _theme_template(theme):
     return "plotly_dark" if theme == "dark" else "plotly_white"
@@ -106,7 +110,9 @@ def _apply_theme(fig, theme):
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         margin=dict(l=40, r=20, t=60, b=40),
-        legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5),
+        # Above the plot: below it, the legend lands on the x-axis labels, the rotated
+        # chapter names most of all. Plotly grows the top margin when the legend wraps.
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     )
     return fig
 
@@ -115,6 +121,13 @@ def _empty_figure(theme, message="No data available"):
     fig = go.Figure()
     fig.add_annotation(text=message, x=0.5, y=0.5, xref="paper", yref="paper", showarrow=False)
     return _apply_theme(fig, theme)
+
+
+def chapter_label(name):
+    """A chapter's name as the charts show it: without "Candidate Chapter", and "Univ" for "University"."""
+    if not name:
+        return name
+    return re.sub(r"\buniversity\b", "Univ", CANDIDATE_CHAPTER_SUFFIX.sub("", name), flags=re.IGNORECASE)
 
 
 def parse_region_slug(pathname):
@@ -1087,6 +1100,7 @@ def _bar_by_chapter(rows, y_label, theme):
         "user__chapter__region__name": "Region",
     }
     df = df.rename(columns={k: v for k, v in rename.items() if k in df.columns})
+    df["Chapter"] = df["Chapter"].map(chapter_label)
     df["Region"] = df["Region"].fillna("Candidate")
     df = df.sort_values(["Region", "count"], ascending=[True, False])
 
@@ -1255,11 +1269,12 @@ def _mix_chart(counts, categories, colors, at_risk, theme, single, legend_title,
     totals = {name: sum(mix.values()) for name, mix in counts.items()}
     risk = {name: sum(mix[category] for category in at_risk) / totals[name] for name, mix in counts.items()}
     order = sorted(counts, key=lambda name: (-risk[name], name))
+    labels = [chapter_label(name) for name in order]
     fig = go.Figure()
     for category, color in zip(categories, colors):
         fig.add_trace(
             go.Bar(
-                x=order,
+                x=labels,
                 y=[round(counts[name][category] / totals[name] * 100, 1) for name in order],
                 customdata=[counts[name][category] for name in order],
                 name=category,
@@ -1275,10 +1290,7 @@ def _mix_chart(counts, categories, colors, at_risk, theme, single, legend_title,
         yaxis_title=y_label,
         legend_title_text=legend_title,
     )
-    _apply_theme(fig, theme)
-    # Above the bars: below, it collides with the rotated chapter names.
-    fig.update_layout(legend=dict(yanchor="bottom", y=1.02, xanchor="right", x=1))
-    return fig
+    return _apply_theme(fig, theme)
 
 
 def _by_score_type(rows, x_label, theme):
@@ -1560,6 +1572,8 @@ def submissions_by_category(region_slug, ay_start_year, theme):
             date__gte=ay_start.date(),
             date__lt=ay_end.date(),
         )
+        # Every member signs a Risk Management Program; it would dwarf the other categories.
+        .exclude(type__slug="rmp")
         .values("type__name", "type__section")
         .annotate(count=Count("id"))
     )
@@ -1890,7 +1904,7 @@ def top_recruiting_chapters(region_slug, ay_start_year, theme):
         .annotate(count=Count("id"))
     )
     for row in rows:
-        row["Chapter"] = row.pop("chapter__name")
+        row["Chapter"] = chapter_label(row.pop("chapter__name"))
         row["Region"] = row.pop("chapter__region__name")
     return _horizontal_bar_top_n(
         rows,
@@ -1956,7 +1970,7 @@ def retention_by_chapter(region_slug, ay_start_year, theme):
         rate = max(0.0, 1.0 - (depledges / pnms)) * 100
         rows.append(
             {
-                "Chapter": chapter_name,
+                "Chapter": chapter_label(chapter_name),
                 "Region": row["user__chapter__region__name"] or "Candidate",
                 "count": round(rate, 1),
             }
@@ -2517,7 +2531,7 @@ def cmt_use_by_chapter(region_slug, theme):
         signed_in = sum(row[f"{group}_signed_in"] for row in rows)
         fig.add_trace(
             go.Bar(
-                x=[row["chapter__name"] for row in rows],
+                x=[chapter_label(row["chapter__name"]) for row in rows],
                 # A chapter with nobody in the group gets no bar rather than 0%.
                 y=[round(row[f"{group}_signed_in"] / row[group] * 100) if row[group] else None for row in rows],
                 customdata=[[row[f"{group}_signed_in"], row[group]] for row in rows],
@@ -2536,7 +2550,4 @@ def cmt_use_by_chapter(region_slug, theme):
         yaxis_title="Signed in (%)",
         yaxis_range=[0, 105],
     )
-    _apply_theme(fig, theme)
-    # Above the bars: the rotated chapter names below would hide the overall shares.
-    fig.update_layout(legend=dict(yanchor="bottom", y=1.02, xanchor="right", x=1))
-    return fig
+    return _apply_theme(fig, theme)

@@ -121,6 +121,31 @@ def test_bar_by_chapter_handles_user_chapter_field_names():
     assert fig.data[0].x[0] == "Alpha"
 
 
+@pytest.mark.parametrize(
+    "name, label",
+    [
+        ("Howard University Candidate Chapter", "Howard Univ"),
+        ("IUPUI Candidate Chapter", "IUPUI"),
+        ("University of Testing", "Univ of Testing"),
+        ("Chi Beta", "Chi Beta"),
+    ],
+)
+def test_chapter_label_drops_candidate_chapter_and_shortens_university(name, label):
+    from thetatauCMT.regions.dashboard import chapter_label
+
+    assert chapter_label(name) == label
+
+
+def test_bar_by_chapter_shows_short_chapter_names_under_the_legend():
+    from thetatauCMT.regions.dashboard import _bar_by_chapter
+
+    rows = [{"chapter__name": "Howard University Candidate Chapter", "chapter__region__name": "East", "count": 4}]
+    fig = _bar_by_chapter(rows, "Members", "light")
+    assert list(fig.data[0].x) == ["Howard Univ"]
+    # The legend sits above the plot, clear of the rotated chapter names below it.
+    assert fig.layout.legend.y > 1
+
+
 # ---------------------------------------------------------------------------
 # _horizontal_bar_top_n + _treemap_from_rows
 # ---------------------------------------------------------------------------
@@ -761,7 +786,8 @@ def test_events_and_submissions_by_category_count_each_score_type():
         ("meetings", next_year),
     ]:
         EventFactory(chapter=chapter, type=ScoreType.objects.get(slug=slug), date=day)
-    for slug, day in [("audit", in_year), ("osm", in_year), ("osm", next_year)]:
+    # Every member signs a Risk Management Program, so it is left out.
+    for slug, day in [("audit", in_year), ("osm", in_year), ("osm", next_year), ("rmp", in_year)]:
         SubmissionFactory(chapter=chapter, type=ScoreType.objects.get(slug=slug), date=day)
 
     events = d.events_by_category(region.slug, 2025, "light")
