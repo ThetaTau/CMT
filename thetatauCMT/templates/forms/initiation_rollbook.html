@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Roll Book Pages{% endblock %}
+{% block content %}
+  <a href="{% url 'forms:init_selection' %}#initiations">Return to Initiation Selection</a>
+  <h1>Generate Roll Book Pages</h1>
+  <p>These are the roll book pages for the class {{ object.chapter }} initiated on the initiation report submitted
+    {{ object.created|date:"F j, Y" }}. We encourage the chapter to find good quality paper to print on.</p>
+  <p>Each page is filled in from the member's profile and from the initiation report, so there is no initiation
+    date to set.
+    <strong>Please verify all information is correct for each member.</strong>
+    Each member can update their information by logging into the CMT and clicking on "My Profile".</p>
+  {% include "forms/_rollbook_generator.html" with initiated=True %}
+{% endblock content %}

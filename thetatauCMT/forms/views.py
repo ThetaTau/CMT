@@ -55,6 +55,7 @@ from core.utils import retry_google_api, retry_on_deadlock
 from core.views import (
     ActiveMemberRequiredMixin,
     AssignOfficerFormMixin,
+    ChapterScopedQuerysetMixin,
     LoginRequiredMixin,
     NatOfficerRequiredMixin,
     OfficerRequiredMixin,
@@ -81,7 +82,7 @@ from thetatauCMT.trainings.models import EdCourse, Training, VectorGroup
 from thetatauCMT.users.forms import UserForm
 from thetatauCMT.users.models import User, UserRoleChange
 from thetatauCMT.users.notifications import NewOfficers
-from thetatauCMT.users.tables import RollBookTable
+from thetatauCMT.users.tables import InitiatedRollBookTable, RollBookTable
 
 from .filters import (
     AlumniExclusionListFilter,
@@ -153,8 +154,10 @@ from .models import (
     DisciplinaryProcess,
     Employer,
     HSEducation,
+    Initiation,
     InitiationProcess,
     OtherSchool,
+    Pledge,
     PledgeProcess,
     PledgeProgram,
     PledgeProgramProcess,
@@ -451,6 +454,7 @@ class InitDeplSelectView(LoginRequiredMixin, FormSetView):
             members = ", ".join(list(process.initiations.values_list("user__name", flat=True)))
             initiation_data.append(
                 {
+                    "pk": process.pk,
                     "initiation": first_initiation.date,
                     "submitted": process.created,
                     "status": status,
@@ -479,7 +483,12 @@ class InitDeplSelectView(LoginRequiredMixin, FormSetView):
                 }
             )
         pledges = PledgeFormTable(data=pledge_data, order_by="-submitted")
-        inits = InitiationTable(data=initiation_data, order_by="-submitted")
+        # The roll book link column leads to an officer-only page.
+        inits = InitiationTable(
+            data=initiation_data,
+            order_by="-submitted",
+            exclude=() if getattr(self.request, "is_officer", False) else ("rollbook",),
+        )
         depledges = DepledgeTable(
             Depledge.objects.filter(user__chapter=self.request.user.current_chapter).order_by("-date")
         )
@@ -512,17 +521,39 @@ def set_init_date(request):
     return HttpResponse(f"Initiation date set to: {init_date}")
 
 
-@group_required("officer")
-@csrf_exempt
-def download_all_rollbook(request):
+def rollbook_rows(members, initiated=False):
+    """Rows for the roll book generator table, one per member.
+
+    ``initiated`` adds the roll number and date from each member's initiation
+    report, which is what their roll book page then prints.
+    """
+    # A re-pledged member has more than one pledge form; take the latest (the
+    # one the roll page prints) instead of repeating their row once per form.
+    pledge_form = Pledge.objects.filter(user=OuterRef("pk")).order_by("-pk")
+    extra = {"roll": F("initiation__roll"), "initiation_date": F("initiation__date")} if initiated else {}
+    return members.values(
+        "pk",
+        "name",
+        "email",
+        "graduation_year",
+        "phone_number",
+        "birth_date",
+        address_formatted=F("address__formatted"),
+        rollbook=Value("Link", output_field=CharField()),
+        major_name=F("major__major"),
+        birth_place=Subquery(pledge_form.values("birth_place")[:1]),
+        other_degrees=Subquery(pledge_form.values("other_degrees")[:1]),
+        **extra,
+    )
+
+
+def rollbook_zip_response(request, members):
+    """A zip download of one roll book page PDF per member."""
     time_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     zip_filename = f"RollBookPages_{time_name}.zip"
-    initiate = request.session.get("init-selection", None)
-    pledges = request.user.current_chapter.pledges()
-    to_roll = pledges.filter(pk__in=initiate["Roll"])
     zip_io = BytesIO()
     with zipfile.ZipFile(zip_io, "w") as zf:
-        for user in to_roll:
+        for user in members:
             new_request = HttpRequest()
             new_request.method = "GET"
             new_request.user = request.user
@@ -536,6 +567,14 @@ def download_all_rollbook(request):
     response["Cache-Control"] = "no-cache"
     response["Content-Disposition"] = f"attachment; filename={zip_filename}"
     return response
+
+
+@group_required("officer")
+@csrf_exempt
+def download_all_rollbook(request):
+    initiate = request.session.get("init-selection", None)
+    pledges = request.user.current_chapter.pledges()
+    return rollbook_zip_response(request, pledges.filter(pk__in=initiate["Roll"]))
 
 
 class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
@@ -583,20 +622,8 @@ class InitiationView(LoginRequiredMixin, OfficerRequiredMixin, FormView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.to_roll:
-            data = self.to_roll.values(
-                "pk",
-                "name",
-                "email",
-                "graduation_year",
-                "phone_number",
-                "birth_date",
-                address_formatted=F("address__formatted"),
-                rollbook=Value("Link", output_field=CharField()),
-                major_name=F("major__major"),
-                birth_place=F("pledge_form__birth_place"),
-                other_degrees=F("pledge_form__other_degrees"),
-            )
-            context["roll_table"] = RollBookTable(data=data)
+            context["roll_table"] = RollBookTable(data=rollbook_rows(self.to_roll))
+            context["download_url"] = reverse("forms:roll_book_download_all")
         else:
             chapter = self.request.user.current_chapter
             formset = kwargs.get("formset", None)
@@ -1711,28 +1738,57 @@ class RollBookPDFView(LoginRequiredMixin, OfficerRequiredMixin, WeasyTemplateRes
     template_name = "forms/rollbook_pdf.html"
     candidate_template_name = "forms/rollbook_candidate_pdf.html"
 
+    def get_queryset(self):
+        # The page prints a member's home address, birth date and phone, so a
+        # chapter officer only reaches their own chapter's members, plus the
+        # members their chapter initiated who have since transferred.
+        queryset = super().get_queryset()
+        user = self.request.user
+        if user.is_admin or user.is_national_officer_group:
+            return queryset
+        chapter = user.current_chapter
+        return queryset.filter(Q(chapter=chapter) | Q(initiation__chapter=chapter))
+
+    @cached_property
+    def initiation(self):
+        return Initiation.objects.select_related("chapter").filter(user=self.object).first()
+
+    @property
+    def roll_chapter(self):
+        """The chapter whose roll book the page belongs in: the one that initiated the member."""
+        if self.initiation is not None and self.initiation.chapter is not None:
+            return self.initiation.chapter
+        return getattr(self.object, "chapter", None)
+
     def get_template_names(self):
         # Candidate chapters roll their members on a different form than
-        # chartered chapters — pick the template from the member's chapter.
-        chapter = getattr(self.object, "chapter", None)
+        # chartered chapters, so pick the template from the roll chapter.
+        chapter = self.roll_chapter
         if chapter is not None and chapter.candidate_chapter:
             return [self.candidate_template_name]
         return [self.template_name]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        init_date = self.request.session.get("init_date", datetime.datetime.today().date())
-        if isinstance(init_date, str):
-            try:
-                init_date = datetime.datetime.strptime(init_date, "%m/%d/%Y")
-            except ValueError:
-                # A blank or malformed session value (e.g. the officer submitted
-                # the initiation-date form empty) must not 500 the roll book
-                # download (issues #984/#985); fall back to today.
-                init_date = datetime.datetime.today().date()
+        if self.initiation is not None:
+            # Already initiated: print what the initiation report recorded, not
+            # the planned date an officer may have set for a later class.
+            init_date = self.initiation.date
+        else:
+            init_date = self.request.session.get("init_date", datetime.datetime.today().date())
+            if isinstance(init_date, str):
+                try:
+                    init_date = datetime.datetime.strptime(init_date, "%m/%d/%Y")
+                except ValueError:
+                    # A blank or malformed session value (e.g. the officer submitted
+                    # the initiation-date form empty) must not 500 the roll book
+                    # download (issues #984/#985); fall back to today.
+                    init_date = datetime.datetime.today().date()
         with open(r"secrets/short_oath.txt", "r") as file:
             context["short_oath"] = file.read()
         context["init_date"] = init_date
+        context["roll_chapter"] = self.roll_chapter
+        context["roll_number"] = self.initiation.roll if self.initiation is not None else None
         context["pledge_form"] = self.object.pledge_form.last()
         return context
 
@@ -1740,6 +1796,35 @@ class RollBookPDFView(LoginRequiredMixin, OfficerRequiredMixin, WeasyTemplateRes
 class RollBookPDFDownload(RollBookPDFView):
     def get_pdf_filename(self):
         return f"RollBookPage_{self.object.chapter.slug}_{self.object.id}.pdf"
+
+
+class InitiationRollBookView(LoginRequiredMixin, OfficerRequiredMixin, ChapterScopedQuerysetMixin, DetailView):
+    """Roll book pages for the class one submitted initiation report initiated.
+
+    Linked from the "Initiation Forms" tab of the selection page, so a chapter
+    can print (or reprint) the pages after the initiation has been reported.
+    """
+
+    model = InitiationProcess
+    pk_url_kwarg = "process_pk"
+    template_name = "forms/initiation_rollbook.html"
+    officer_edit = "roll book pages"
+    officer_edit_type = "generate"
+
+    def get_members(self):
+        return User.objects.filter(initiation__process=self.object).order_by("initiation__roll", "name")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["roll_table"] = InitiatedRollBookTable(data=rollbook_rows(self.get_members(), initiated=True))
+        context["download_url"] = reverse("forms:init_rollbook_download", kwargs={"process_pk": self.object.pk})
+        return context
+
+
+class InitiationRollBookDownloadView(InitiationRollBookView):
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        return rollbook_zip_response(request, self.get_members())
 
 
 def active_chapters_filter(filter_obj):

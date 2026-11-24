@@ -75,6 +75,16 @@ urlpatterns = [
         name="init_selection",
     ),
     path(
+        "initiation-rollbook/<int:process_pk>/",
+        view=views.InitiationRollBookView.as_view(),
+        name="init_rollbook",
+    ),
+    path(
+        "initiation-rollbook/<int:process_pk>/download/",
+        view=views.InitiationRollBookDownloadView.as_view(),
+        name="init_rollbook_download",
+    ),
+    path(
         "initiation-csv/<int:process_pk>/<str:csv_type>/",
         view=views.badge_shingle_init_csv,
         name="init_csv",

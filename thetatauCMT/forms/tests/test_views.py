@@ -8,6 +8,12 @@ Tests cover:
   - No-auth views (PledgeFormView, BillOfRightsDetailView, load_majors) return 200.
 """
 
+import datetime
+import io
+import zipfile
+from contextlib import contextmanager
+from unittest.mock import patch
+
 import pytest
 from django import forms
 from django.contrib.auth.models import Group
@@ -4793,6 +4799,161 @@ def test_rollbook_pdf_view_blank_init_date_falls_back_to_today():
     assert context["init_date"] == datetime.datetime.today().date()
 
 
+# ─── Roll book pages for an initiated class ───────────────────────────────────
+
+
+def _initiated_class(chapter, rolls=(101, 102)):
+    """An initiation report from ``chapter`` that initiated one member per roll number."""
+    from thetatauCMT.forms.tests.factories import InitiationFactory, InitiationProcessFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    process = InitiationProcessFactory.create(chapter=chapter)
+    initiations = [
+        InitiationFactory.create(
+            user=UserFactory(chapter=chapter), chapter=chapter, roll=roll, date=datetime.date(2026, 4, 11)
+        )
+        for roll in rolls
+    ]
+    process.initiations.set(initiations)
+    return process, initiations
+
+
+@contextmanager
+def _short_oath():
+    """Stand in for ``secrets/short_oath.txt`` (absent in the test image) so roll pages render."""
+    real_open = open
+
+    def fake_open(file, *args, **kwargs):
+        if file == r"secrets/short_oath.txt":
+            return io.StringIO("short oath")
+        return real_open(file, *args, **kwargs)
+
+    with patch("builtins.open", side_effect=fake_open):
+        yield
+
+
+@pytest.mark.django_db
+def test_init_selection_links_each_initiated_class_roll_book_for_officers_only(auto_login_user):
+    client, user = auto_login_user()
+    process, _ = _initiated_class(user.current_chapter)
+    link = reverse("forms:init_rollbook", kwargs={"process_pk": process.pk})
+
+    assert link not in client.get(reverse("forms:init_selection")).content.decode()
+
+    _add_to_group(user, "officer")
+    assert link in client.get(reverse("forms:init_selection")).content.decode()
+
+
+@pytest.mark.django_db
+def test_initiated_class_rollbook_lists_the_class_with_its_recorded_roll_and_date(auto_login_user):
+    from thetatauCMT.forms.tests.factories import PledgeFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    process, initiations = _initiated_class(user.current_chapter)
+    _, other_class = _initiated_class(user.current_chapter, rolls=(103,))
+    # A re-pledged member has two pledge forms; they still get one row, from the latest form.
+    PledgeFactory(user=initiations[0].user, birth_place="Old Town")
+    PledgeFactory(user=initiations[0].user, birth_place="New Town")
+
+    response = client.get(reverse("forms:init_rollbook", kwargs={"process_pk": process.pk}))
+
+    assert response.status_code == 200
+    records = [row.record for row in response.context["roll_table"].rows]
+    assert [record["pk"] for record in records] == [initiation.user.pk for initiation in initiations]
+    assert other_class[0].user.pk not in [record["pk"] for record in records]
+    assert [record["roll"] for record in records] == [101, 102]
+    assert {record["initiation_date"] for record in records} == {datetime.date(2026, 4, 11)}
+    assert records[0]["birth_place"] == "New Town"
+    body = response.content.decode()
+    assert reverse("forms:init_rollbook_download", kwargs={"process_pk": process.pk}) in body
+    # The pages print the date the report recorded, so there is no date to set.
+    assert 'id="init_date"' not in body
+
+
+@pytest.mark.django_db
+def test_initiated_class_rollbook_is_for_officers_only(auto_login_user):
+    client, user = auto_login_user()
+    process, _ = _initiated_class(user.current_chapter)
+
+    for name in ("forms:init_rollbook", "forms:init_rollbook_download"):
+        response = client.get(reverse(name, kwargs={"process_pk": process.pk}))
+        assert response.status_code == 302
+        assert response["Location"] == reverse("home")
+
+
+@pytest.mark.django_db
+def test_initiated_class_rollbook_of_another_chapter_is_not_found(auto_login_user):
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    process, _ = _initiated_class(ChapterFactory())
+
+    for name in ("forms:init_rollbook", "forms:init_rollbook_download"):
+        assert client.get(reverse(name, kwargs={"process_pk": process.pk})).status_code == 404
+
+
+@pytest.mark.django_db
+def test_initiated_class_rollbook_download_zips_a_page_per_member(auto_login_user):
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    process, initiations = _initiated_class(user.current_chapter)
+
+    with _short_oath():
+        response = client.get(reverse("forms:init_rollbook_download", kwargs={"process_pk": process.pk}))
+
+    assert response.status_code == 200
+    archive = zipfile.ZipFile(io.BytesIO(response.content))
+    expected = {f"RollBookPage_{i.user.chapter.slug}_{i.user.pk}.pdf" for i in initiations}
+    assert set(archive.namelist()) == expected
+    assert all(archive.read(name).startswith(b"%PDF-") for name in expected)
+
+
+@pytest.mark.django_db
+def test_rollbook_pdf_of_an_initiated_member_prints_the_initiation_report():
+    """The report's date, roll and chapter win over a planned session date and
+    the chapter the member has since transferred to."""
+    from django.test import RequestFactory
+
+    from thetatauCMT.forms.tests.factories import InitiationFactory
+    from thetatauCMT.forms.views import RollBookPDFView
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    initiating_chapter = ChapterFactory(candidate_chapter=True)
+    member = UserFactory(chapter=ChapterFactory(candidate_chapter=False))
+    InitiationFactory(user=member, chapter=initiating_chapter, roll=42, date=datetime.date(2026, 4, 11))
+    view = RollBookPDFView()
+    view.object = member
+    view.kwargs = {"pk": member.pk}
+    view.request = RequestFactory().get("/")
+    view.request.session = {"init_date": "01/02/2027"}
+
+    with _short_oath():
+        context = view.get_context_data()
+
+    assert context["init_date"] == datetime.date(2026, 4, 11)
+    assert context["roll_number"] == 42
+    assert context["roll_chapter"] == initiating_chapter
+    assert view.get_template_names() == ["forms/rollbook_candidate_pdf.html"]
+
+
+@pytest.mark.django_db
+def test_rollbook_pdf_reaches_only_members_of_the_officers_chapter(auto_login_user):
+    """A roll page carries a member's home address, birth date and phone."""
+    from thetatauCMT.forms.tests.factories import InitiationFactory
+    from thetatauCMT.users.tests.factories import UserFactory
+
+    client, user = auto_login_user()
+    _add_to_group(user, "officer")
+    stranger = UserFactory()
+    transferred = UserFactory()  # initiated by the officer's chapter, now in another
+    InitiationFactory(user=transferred, chapter=user.current_chapter)
+
+    assert client.get(reverse("forms:roll_book_page", kwargs={"pk": stranger.pk})).status_code == 404
+    with _short_oath():
+        response = client.get(reverse("forms:roll_book_page", kwargs={"pk": transferred.pk}))
+    assert response.status_code == 200
+
+
 # ─── DisciplinaryCreateView GET (lines 2756-2759) ─────────────────────────────
 
 
@@ -4889,6 +5050,10 @@ def test_initiation_view_get_with_roll_items(auto_login_user):
     url = reverse("forms:initiation")
     response = client.get(url, follow=True)
     assert response.status_code == 200
+    body = response.content.decode()
+    # Before initiation the officer still sets the date and downloads the marked PNMs.
+    assert 'id="init_date"' in body
+    assert reverse("forms:roll_book_download_all") in body
 
 
 # ─── InitiationView GET with candidate_chapter (line 379) ────────────────────

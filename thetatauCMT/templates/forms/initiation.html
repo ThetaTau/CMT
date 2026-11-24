@@ -21,23 +21,6 @@ function update_dates() {
     date.value = default_date.value;
   }
 }
-function set_init(){
-  let value = $('#init_date').val();
-  $.ajax({
-    type: "POST",
-    data: {
-      'init_date': value
-    },
-    url: "{% url 'forms:set_init_date' %}",
-    success: function (response) {
-      alert(response);
-    }
-  });
-}
-function download() {
-  alert("This could take some time\nPlease be patient");
-  window.open("{% url 'forms:roll_book_download_all' %}", '_blank');
-}
 $(function () {
   $("[id ^=id][id$=meeting_held]").each(function (index, element) {
     var value = $(this).find(":selected")[0].value;
@@ -108,41 +91,11 @@ $('.returned_items-class input').change(function () {
   <a href="{% url 'forms:init_selection' %}">Return to Initiation Selection</a>
 {% if roll_table %}
   <h1>Generate Roll Book Pages</h1>
-  <p>These roll book pages can be used for initation. We encourage the chapter to find good quality paper to print on.</p>
+  <p>These roll book pages can be used for initiation. We encourage the chapter to find good quality paper to print on.</p>
   <p><strong>Please verify all information is correct for each potential new member.</strong>
     Each PNM can update their information by logging into the CMT and clicking on "My Profile".</p>
-  <p>Once verified, set the date of initation and then download the roll book pages.</p>
-  <table>
-  <tr>
-    <td>Date of Initiation:</td>
-    <td>
-      <div style="position: relative">
-        <input id="init_date" autocomplete="off" class="datepicker" data-toggle="datetimepicker"
-               data-target="#init_date">
-        <script type="text/javascript">
-          $(function () {
-            $('#init_date').datetimepicker({"format": "M/DD/YYYY"});
-          });
-        </script>
-      </div>
-    </td>
-    <td>
-      <input type="submit" id="init_date_submit"
-             value="Set Initation Date For All" class="btn btn-secondary"
-             onclick="this.value='Applied';
-         set_init();
-         return false;"/>
-    </td>
-    <td>
-      <input type="submit" value="Download All Roll Book Pages"
-             id="download" class="btn btn-primary"
-             onclick="this.value='Downloading...';
-         download();
-         return false;"/>
-    </td>
-  </tr>
-  </table>
-    {% render_table roll_table %}
+  <p>Once verified, set the date of initiation and then download the roll book pages.</p>
+  {% include "forms/_rollbook_generator.html" %}
   {% else %}
 {% specialspaceless %}
   <form action="" enctype="multipart/form-data" method="post">

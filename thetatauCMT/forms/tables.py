@@ -112,6 +112,14 @@ class InitiationTable(CMTTable):
     submitted = tables.DateColumn()
     status = tables.Column()
     member_names = tables.Column()
+    rollbook = tables.LinkColumn(
+        "forms:init_rollbook",
+        args=[A("pk")],
+        text="Roll book pages",
+        verbose_name="Roll Book",
+        orderable=False,
+        empty_values=(),
+    )
 
     class Meta:
         attrs = {

@@ -1,0 +1,61 @@
+{% load render_table from django_tables2 %}
+{% comment %}
+  The roll book page generator shared by the initiation report (PNMs marked
+  "Roll Book") and an initiated class's roll book page. Needs roll_table and
+  download_url. Pass initiated=True for a class that has been initiated: its
+  pages are filled in from the initiation report, so there is no date to set.
+{% endcomment %}
+<table>
+  <tr>
+    {% if not initiated %}
+    <td>Date of Initiation:</td>
+    <td>
+      <div style="position: relative">
+        <input id="init_date" autocomplete="off" class="datepicker" data-toggle="datetimepicker"
+               data-target="#init_date">
+        <script type="text/javascript">
+          $(function () {
+            $('#init_date').datetimepicker({"format": "M/DD/YYYY"});
+          });
+        </script>
+      </div>
+    </td>
+    <td>
+      <input type="submit" id="init_date_submit"
+             value="Set Initiation Date For All" class="btn btn-secondary"
+             onclick="this.value='Applied';
+         set_init();
+         return false;"/>
+    </td>
+    {% endif %}
+    <td>
+      <input type="submit" value="Download All Roll Book Pages"
+             id="download" class="btn btn-primary" data-url="{{ download_url }}"
+             onclick="this.value='Downloading...';
+         download(this.dataset.url);
+         return false;"/>
+    </td>
+  </tr>
+</table>
+{% render_table roll_table %}
+<script>
+{% if not initiated %}
+function set_init(){
+  let value = $('#init_date').val();
+  $.ajax({
+    type: "POST",
+    data: {
+      'init_date': value
+    },
+    url: "{% url 'forms:set_init_date' %}",
+    success: function (response) {
+      alert(response);
+    }
+  });
+}
+{% endif %}
+function download(url) {
+  alert("This could take some time\nPlease be patient");
+  window.open(url, '_blank');
+}
+</script>

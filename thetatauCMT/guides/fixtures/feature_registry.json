@@ -650,6 +650,16 @@
           "roles": ["scribe"]
         },
         {
+          "key": "roll-book-initiated-class",
+          "name": "Roll book pages for an initiated class",
+          "short_description": "Print the roll book pages for a class your chapter has already initiated.",
+          "long_description": "Under 'Previously submitted forms' on the initiation selection page, open the 'Initiation Forms' tab and choose 'Roll book pages' in the class's row. That page lists every member the initiation report initiated, with a page to print for each and a download-all option. The pages are filled in from the report, so there is no initiation date to set.",
+          "url_name": "forms:init_selection",
+          "url_fragment": "initiations",
+          "audience": "officer",
+          "roles": ["scribe"]
+        },
+        {
           "key": "ritual-proficiency",
           "name": "Ritual proficiency",
           "short_description": "Which chapters have certified ritual proficiency.",
@@ -1432,7 +1442,7 @@
         },
         {
           "title": "Record the roll book",
-          "body": "The roll book page is the permanent signed record of each initiate. Mark the candidate 'Roll Book' on the initiation selection form to generate theirs.",
+          "body": "The roll book page is the permanent signed record of each initiate. Mark the candidate 'Roll Book' on the initiation selection form to generate theirs, or print a class's pages after initiation from its row under 'Initiation Forms' on the same page.",
           "feature": "roll-book-page",
           "cadence": "each_term"
         },

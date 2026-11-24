@@ -168,6 +168,19 @@ class RollBookTable(CMTTable):
         attrs = {"class": "table table-striped table-bordered"}
 
 
+class InitiatedRollBookTable(RollBookTable):
+    """The roll book generator table for members who are already initiated."""
+
+    roll = tables.Column(verbose_name="Roll")
+    initiation_date = tables.DateColumn(verbose_name="Initiation Date")
+
+    class Meta:
+        model = User
+        fields = RollBookTable.Meta.fields + ("roll", "initiation_date")
+        sequence = ("rollbook", "name", "roll", "initiation_date", "...")
+        attrs = {"class": "table table-striped table-bordered"}
+
+
 class UserOrgTable(CMTTable):
     user = tables.LinkColumn(
         "users:profile",

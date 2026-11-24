@@ -93,6 +93,12 @@
       <div class="row">
         <p>In member list, status will change activepending to active after processing.</p>
       </div>
+    {% if request.is_officer %}
+      <div class="row">
+        <p>To print the roll book pages for a class after it has been initiated, use the "Roll book pages" link
+          in that class's row.</p>
+      </div>
+    {% endif %}
     <div class="row">
   {% render_table init_table %}
     </div>
@@ -111,3 +117,21 @@
 </div>
 {% endspecialspaceless %}
 {% endblock content %}
+{% block javascript %}
+{{ block.super }}
+<script>
+  // Deep links (the feature catalog, "Return to Initiation Selection") name a
+  // tab pane, which stays hidden until its tab is shown.
+  (function () {
+    var hash = window.location.hash;
+    if (!hash) {
+      return;
+    }
+    document.querySelectorAll('#myTab [data-bs-toggle="tab"]').forEach(function (tab) {
+      if (tab.getAttribute('href') === hash) {
+        bootstrap.Tab.getOrCreateInstance(tab).show();
+      }
+    });
+  })();
+</script>
+{% endblock javascript %}
