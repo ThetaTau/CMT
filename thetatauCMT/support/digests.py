@@ -1,9 +1,10 @@
 """The daily and monthly Chapter Support Specialist digests (CSSWI-6; Q14, Q25 C, S17).
 
 ``send_css_digests`` runs both. The daily digest carries the emails that reach a CSS only
-through the digest, in full, and lists the time-sensitive ones they already got on CC.
-The monthly digest covers each of their chapters: last month's emails in one line each,
-and what is still open now.
+through the digest, in full, lists reminders that repeat daily in one line each, and lists
+the time-sensitive ones they already got on CC. The monthly digest covers each of their
+chapters: last month's emails in one line each (an email sent many times once, with a
+count), and what is still open now.
 """
 
 import datetime
@@ -17,6 +18,7 @@ from herald.models import SentNotification
 
 from core.models import previous_month_period
 
+from .emails import REPEATING_KINDS
 from .models import SupportDigestEntry
 from .services import css_chapters, current_css_users
 
@@ -56,14 +58,32 @@ def send_daily_digests(now=None, dry_run=False):
 
 
 def daily_sections(entries):
-    """Digest-only emails grouped by chapter, then the time-sensitive ones already sent."""
+    """Digest-only emails grouped by chapter, then the time-sensitive ones already sent.
+
+    Reminders that repeat daily are listed apart, once each, as ``overdue``.
+    """
     sections = []
     for chapter, chapter_entries in groupby(entries, key=attrgetter("chapter")):
-        emails = [entry for entry in chapter_entries if not entry.realtime]
-        if emails:
-            sections.append({"chapter": chapter, "url": chapter_url(chapter), "emails": emails})
+        digest_only = [entry for entry in chapter_entries if not entry.realtime]
+        emails = [entry for entry in digest_only if entry.kind not in REPEATING_KINDS]
+        overdue = collapse_repeats([entry for entry in digest_only if entry.kind in REPEATING_KINDS])
+        if emails or overdue:
+            sections.append({"chapter": chapter, "url": chapter_url(chapter), "emails": emails, "overdue": overdue})
     already_sent = [entry for entry in entries if entry.realtime]
     return sections, already_sent
+
+
+def collapse_repeats(entries):
+    """Each email once, at its first send, with ``repeats`` set to how many times it was sent."""
+    lines = {}
+    for entry in entries:
+        key = (entry.kind, entry.subject)
+        if key in lines:
+            lines[key].repeats += 1
+        else:
+            entry.repeats = 1
+            lines[key] = entry
+    return list(lines.values())
 
 
 def send_monthly_digests(today=None, dry_run=False, force=False):
@@ -130,7 +150,7 @@ def chapter_month_summary(chapter, entries, today):
     return {
         "chapter": chapter,
         "url": chapter_url(chapter),
-        "emails": sorted(entries, key=attrgetter("created")),
+        "emails": collapse_repeats(sorted(entries, key=attrgetter("created"))),
         "missing_officers": [title for title, officer in zip(OFFICER_TITLES, officers) if officer is None],
         "overdue_tasks": list(overdue.order_by("date")[:10]),
         "overdue_count": overdue.count(),

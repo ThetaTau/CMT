@@ -4,7 +4,8 @@ Every send listed in the spec's Email inventory hands its email to :func:`notify
 just before it goes out, usually through :class:`SupportCopyMixin`. Time-sensitive kinds
 (the ``CSS_REALTIME_EMAILS`` Config setting, S16) put the chapter's CSSs on CC and leave a
 one-line digest entry; every other kind reaches them only through the daily digest, so the
-entry keeps the email's body. Emails follow assignments, never the CSS's chapter switcher.
+entry keeps the email's body, except a reminder that repeats daily, which stays one line.
+Emails follow assignments, never the CSS's chapter switcher.
 """
 
 import html
@@ -36,6 +37,8 @@ DEFAULT_REALTIME_KINDS = frozenset(
         Kind.TRANSITION_PAST_DUE,
     }
 )
+# Reminders sent every day until the chapter acts: the daily digest lists each one in one line.
+REPEATING_KINDS = frozenset({Kind.WORKFLOW_OVERDUE})
 
 
 def realtime_kinds():
@@ -51,10 +54,12 @@ def realtime_kinds():
     return chosen or DEFAULT_REALTIME_KINDS
 
 
-def notify_support(notification, chapter, kind, link=""):
+def notify_support(notification, chapter, kind, link="", summary=""):
     """Hand a herald email the chapter's Regent gets to the chapter's CSSs.
 
-    Call it just before ``send()``. Returns the CSSs it covered.
+    Call it just before ``send()``. Returns the CSSs it covered. ``summary`` is what the
+    digests call the email instead of its subject, for a subject that does not say which
+    item the email is about.
     """
     if chapter is None:
         return []
@@ -71,9 +76,9 @@ def notify_support(notification, chapter, kind, link=""):
                 cc.append(person.email)
                 already.add(person.email.lower())
         notification.cc = cc
-    else:
+    elif kind not in REPEATING_KINDS:
         body = email_body_html(notification)
-    subject = (notification.get_subject() or "")[:255]
+    subject = (summary or notification.get_subject() or "")[:255]
     SupportDigestEntry.objects.bulk_create(
         [
             SupportDigestEntry(
@@ -99,11 +104,11 @@ def email_body_html(notification):
         return blocks[0].render(render_context)
 
 
-def copy_to_support(notification, chapter, kind, link=""):
+def copy_to_support(notification, chapter, kind, link="", summary=""):
     """:func:`notify_support` that never stops the officers' email; errors are logged."""
     try:
         with transaction.atomic():
-            return notify_support(notification, chapter, kind, link=link)
+            return notify_support(notification, chapter, kind, link=link, summary=summary)
     except Exception:
         logger.exception("Could not copy %s to the Chapter Support Specialists", type(notification).__name__)
         return []
@@ -112,14 +117,18 @@ def copy_to_support(notification, chapter, kind, link=""):
 class SupportCopyMixin:
     """For a Regent email: ``send`` first hands it to the chapter's CSSs.
 
-    Set ``support_chapter`` (None means no CSS copy) and ``support_kind`` in ``__init__``.
+    Set ``support_chapter`` (None means no CSS copy) and ``support_kind`` in ``__init__``,
+    and ``support_summary`` when the subject alone does not say which item it is about.
     """
 
     support_chapter = None
     support_kind = None
     support_link = ""
+    support_summary = ""
 
     def send(self, *args, **kwargs):
         if self.support_chapter is not None and self.support_kind:
-            copy_to_support(self, self.support_chapter, self.support_kind, link=self.support_link)
+            copy_to_support(
+                self, self.support_chapter, self.support_kind, link=self.support_link, summary=self.support_summary
+            )
         return super().send(*args, **kwargs)

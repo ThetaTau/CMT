@@ -245,7 +245,7 @@
     "fields": {
         "key": "CSS_REALTIME_EMAILS",
         "value": "",
-        "description": "Chapter Support Specialists: the chapter emails they get on CC as sent; every other one reaches them only in the daily digest. Kind codes, one per line or comma separated: officer_monthly, dues, workflow_update, workflow_escalation, award, nme_revision, bylaws, ballot, ballot_receipt, ballot_vote_removed, expulsion, disciplinary, officer_update, pnm_initiation, transition_past_due, case_competition. 'none' sends everything through the digest. Blank means workflow_escalation, ballot, ballot_receipt, ballot_vote_removed, expulsion, disciplinary, officer_update and transition_past_due.",
+        "description": "Chapter Support Specialists: the chapter emails they get on CC as sent; every other one reaches them only in the daily digest. Kind codes, one per line or comma separated: officer_monthly, dues, workflow_update, workflow_escalation, workflow_overdue, award, nme_revision, bylaws, ballot, ballot_receipt, ballot_vote_removed, expulsion, disciplinary, officer_update, pnm_initiation, transition_past_due, case_competition. 'none' sends everything through the digest. Blank means workflow_escalation, ballot, ballot_receipt, ballot_vote_removed, expulsion, disciplinary, officer_update and transition_past_due.",
         "modified": "2026-10-22T00:00:00Z"
     }
 },

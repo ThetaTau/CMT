@@ -396,10 +396,12 @@ class EmailProcessUpdate(SupportCopyMixin, EmailNotification):
         extra_emails=None,
         direct_user=None,
         support_kind=None,
+        support_summary="",
     ):
         """``support_kind`` names the Chapter Support Specialist copy of an email that goes
         to the Regent without ``email_officers``, or a time-sensitive one (CSSWI-6). An
-        ``email_officers`` email is otherwise a workflow update for the daily digest."""
+        ``email_officers`` email is otherwise a workflow update for the daily digest.
+        ``support_summary`` names the item in the digest when the subject does not."""
         emails = set()
         user = direct_user
         obj = None
@@ -448,6 +450,7 @@ class EmailProcessUpdate(SupportCopyMixin, EmailNotification):
         if email_officers or support_kind:
             self.support_chapter = chapter
             self.support_kind = support_kind or SupportDigestEntry.Kind.WORKFLOW_UPDATE
+            self.support_summary = support_summary
         self.reply_to = [
             "central.office@thetatau.org",
         ]

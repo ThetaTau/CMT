@@ -525,7 +525,7 @@ Each `manage.py` task runs as
 | 13:30 | 6:30 am | `update_shingle_contacts` | daily | Rewrite the Chapters sheet of the Shingle order form (Google Sheet) with each chapter's address, status, contact and officer emails; "Notify" also lists its Chapter Support Specialists. |
 | 13:30 | 6:30 am | `officer_update_reminder_email` | daily | Chapter officer-update reminders. |
 | 13:30 | 6:30 am | `job_search_notify` | daily; weekly digest **Wed** | Job Board saved-search alerts (`--frequency both` is the default; `--weekday 2`). |
-| 13:45 | 6:45 am | `remind_workflow_tasks` | daily | Viewflow task reminders. |
+| 13:45 | 6:45 am | `remind_workflow_tasks` | daily | Viewflow task reminders: at 7 and 14 days, then every day from 30 days (URGENT) until the form is done (Convention and OSM processes are cancelled at 60 days instead). ⚠ Runs after `send_css_digests`: Chapter Support Specialists get the 14 day and first URGENT email on CC, and each later daily repeat as one line under "Still overdue" in the next day's digest ([§7.2](#72-timing-rules)). |
 | 15:00 | 8:00 am | `grad_anniversary_email` | sends **May 1** and **Dec 1** | Graduation-anniversary emails (respects unsubscribes). |
 | 17:22 | 10:22 am | `case_competition_daily` | daily | Everything scheduled for the Case Competition, one task: reminders to chapters taking part that have not finished their entry (before a window opens, when it opens, and 3, 1 and 0 days before it closes; the final round reaches only the Regional Qualifiers), the managers' summary after a window closes, the judges' "judging is open" email and their reminders before the judging deadline, and judging assignments for entries whose extension has ended. Each email goes once; a missed day never replays old steps. `--dry-run` lists what it would send. ⚠ Runs after `send_css_digests`, and its Chapter Support Specialist copies are digest only, so they reach them a day later ([§7.2](#72-timing-rules)). |
 | 17:37 | 10:37 am | `chapter_founding_day_email` | daily | Chapter founding-anniversary emails to initiated members. |
@@ -552,7 +552,8 @@ Every `manage.py` command in this section is idempotent and safe to run daily.
   from `chapter_pledges_check`, `case_competition_daily` and `monthly_chapter_officer_email`
   exist only in the digest. Ballot, officer-update, workflow-escalation and disciplinary
   emails CC the specialists as they are sent (`CSS_REALTIME_EMAILS`), so for those only
-  the digest line waits.
+  the digest line waits. The daily repeats of an URGENT workflow reminder
+  (`remind_workflow_tasks`, kind `workflow_overdue`) are digest only, one line each.
 - **Morning emails go out at about 12:00 to 15:00 UTC**, before the workday across the US
   (5 to 8 am Phoenix, 7 to 10 am Eastern in winter). Heavy jobs that send nothing fit
   07:00 to 12:00 UTC (midnight to 5 am Phoenix).

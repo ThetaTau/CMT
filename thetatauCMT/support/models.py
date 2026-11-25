@@ -151,6 +151,7 @@ class SupportDigestEntry(TimeStampedModel):
         DUES = "dues", _("Dues roster and reminder")
         WORKFLOW_UPDATE = "workflow_update", _("Workflow update")
         WORKFLOW_ESCALATION = "workflow_escalation", _("Workflow escalation")
+        WORKFLOW_OVERDUE = "workflow_overdue", _("Workflow overdue, daily reminder")
         AWARD = "award", _("Award granted")
         NME_REVISION = "nme_revision", _("NME program revision request")
         BYLAWS = "bylaws", _("Bylaws update")

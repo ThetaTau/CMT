@@ -18,13 +18,18 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.test import RequestFactory
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import dateformat, timezone
+from django.utils.html import escape
+from viewflow.activation import STATUS
+from viewflow.models import Task as FlowTask
 
 from thetatauCMT.ballots.models import Ballot, BallotComplete
 from thetatauCMT.ballots.notifications import BallotVoteDeleted, BallotVoteReceipt, BallotVoteRequest
 from thetatauCMT.chapters.notifications import DuesReminder
 from thetatauCMT.chapters.tests.factories import ChapterFactory
 from thetatauCMT.configs.models import Config
+from thetatauCMT.forms.flows import DisciplinaryProcessFlow
+from thetatauCMT.forms.models import DisciplinaryProcess
 from thetatauCMT.forms.notifications import EmailProcessUpdate, EmailScribeExpulsion
 from thetatauCMT.forms.views import BylawsCreateView, pledge_program_request_revision
 from thetatauCMT.support.digests import send_daily_digests, send_monthly_digests
@@ -145,6 +150,45 @@ def test_e3_an_email_only_to_the_form_owner_is_not_copied(alpha, css, regent):
 
     assert not SupportDigestEntry.objects.exists()
     assert not any(css.email in message.cc for message in mail.outbox)
+
+
+def _waiting_on_trial_outcome(alpha, regent, trial_date, accused):
+    """A disciplinary process whose Trial Outcome Form the Regent has not filed."""
+    process = DisciplinaryProcess.objects.create(
+        chapter=alpha,
+        user=UserFactory(chapter=alpha, status="active", name=accused),
+        flow_class=DisciplinaryProcessFlow,
+        trial_date=trial_date,
+    )
+    FlowTask.objects.create(
+        flow_task=DisciplinaryProcessFlow.submit_form2, process=process, status=STATUS.ASSIGNED, owner=regent
+    )
+    return process
+
+
+def test_e3_an_overdue_form_is_cc_on_its_first_urgent_day_then_one_digest_line(alpha, css, regent, settings):
+    settings.EXECUTIVE_DIRECTOR = UserFactory().username
+    today = timezone.localdate()
+    _waiting_on_trial_outcome(alpha, regent, today - datetime.timedelta(days=30), "First Accused")
+    repeat = _waiting_on_trial_outcome(alpha, regent, today - datetime.timedelta(days=45), "Second Accused")
+    mail.outbox = []
+
+    call_command("remind_workflow_tasks", "-date", today.strftime("%Y%m%d"))
+
+    assert len(mail.outbox) == 2
+    (cc_message,) = [message for message in mail.outbox if css.email in message.cc]
+    assert "First Accused" in cc_message.alternatives[0][0]
+    assert _entry(css, Kind.WORKFLOW_ESCALATION).realtime
+    overdue = _entry(css, Kind.WORKFLOW_OVERDUE)
+    since = dateformat.format(repeat.trial_date, "M j, Y")
+    assert overdue.subject == f"{repeat}: Pending Trial Outcome Form, waiting on {regent} since {since}"
+    assert not overdue.realtime and overdue.body_html == ""
+
+    mail.outbox = []
+    assert send_daily_digests() == 1
+    html = mail.outbox[0].alternatives[0][0]
+    still_overdue = html.split("Still overdue")[1].split("Already sent to you")[0]
+    assert escape(overdue.subject) in still_overdue and "First Accused" not in still_overdue
 
 
 def test_e4_award_granted_goes_to_the_digest(alpha, css, regent):
@@ -335,6 +379,19 @@ def test_a_day_with_only_cc_emails_sends_no_digest(alpha, css):
     assert not SupportDigestEntry.objects.filter(daily_sent_at__isnull=True).exists()
 
 
+def test_the_daily_digest_lists_a_daily_reminder_once_in_one_line(alpha, css):
+    line = "Resignation Pat Doe from alpha: Pending Verification, waiting on Sam Smith since Sep 1, 2026"
+    _entry_for(css, alpha, Kind.WORKFLOW_OVERDUE, line, body="")
+    _entry_for(css, alpha, Kind.WORKFLOW_OVERDUE, line, body="")
+    _entry_for(css, alpha, Kind.DUES, "Alpha dues roster", body="<p>Alpha dues body</p>")
+
+    assert send_daily_digests() == 1
+
+    html = mail.outbox[0].alternatives[0][0]
+    assert html.count(line) == 1
+    assert html.index("Alpha dues body") < html.index("Still overdue") < html.index(line)
+
+
 # --- the monthly digest (Q14) ---------------------------------------------------------------------
 
 
@@ -356,6 +413,19 @@ def test_the_monthly_digest_covers_each_chapter_once(alpha, css):
 
     assert send_monthly_digests(today=first_of_month) == 0
     assert send_monthly_digests(today=first_of_month, force=True) == 1
+
+
+def test_the_monthly_digest_lists_a_repeated_email_once_with_a_count(alpha, css):
+    first_of_month = timezone.localdate().replace(day=1)
+    for days_before in (3, 2, 1):
+        day = first_of_month - datetime.timedelta(days=days_before)
+        created = timezone.make_aware(datetime.datetime.combine(day, datetime.time(9)))
+        _entry_for(css, alpha, Kind.WORKFLOW_OVERDUE, "Resignation Pat Doe from alpha", body="", created=created)
+
+    assert send_monthly_digests(today=first_of_month) == 1
+
+    html = mail.outbox[0].alternatives[0][0]
+    assert html.count("Resignation Pat Doe from alpha") == 1 and "(sent 3 times)" in html
 
 
 def _run_on(day, *args):

@@ -19,6 +19,15 @@
       {% if email.link %}<p><a href="{{ email.link }}">Open in the CMT</a></p>{% endif %}
     </div>
   {% endfor %}
+  {% if section.overdue %}
+    <p style="margin: 0 0 4px 0;"><strong>Still overdue</strong></p>
+    <p style="margin: 0 0 4px 0;">The chapter's officers get a reminder about each of these every day until it is done.</p>
+    <ul>
+      {% for email in section.overdue %}
+        <li>{{ email.subject }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
 {% endfor %}
 {% if already_sent %}
   <h3 style="margin: 24px 0 8px 0;font-size: 20px;">Already sent to you</h3>

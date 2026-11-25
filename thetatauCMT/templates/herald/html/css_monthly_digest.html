@@ -38,7 +38,7 @@
   {% if section.emails %}
     <ul>
       {% for email in section.emails %}
-        <li>{{ email.created|date:"M j" }}: {{ email.subject }}</li>
+        <li>{{ email.created|date:"M j" }}: {{ email.subject }}{% if email.repeats > 1 %} (sent {{ email.repeats }} times){% endif %}</li>
       {% endfor %}
     </ul>
   {% else %}

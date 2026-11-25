@@ -827,8 +827,9 @@ support.SupportDigestEntry                                             # built (
   user            FK users.User (the CSS), related_name="support_digest_entries"
   chapter         FK chapters.Chapter, related_name="support_digest_entries"
   kind            which email it was (S16): one code per Email inventory row, with E3
-                  split into workflow_update and workflow_escalation
-  subject         the email's subject
+                  split into workflow_update, workflow_escalation and workflow_overdue
+                  (the daily repeats of an URGENT reminder, added 2026-11-25)
+  subject         the email's subject, or a one-line summary for workflow_overdue
   body_html       the rendered email; kept only for digest-only emails
   link            optional link back into the CMT
   realtime        true when the CSS was already on CC (S17)
@@ -920,7 +921,7 @@ is called.
 |---|---|---|---|---|---|
 | E1 | Monthly chapter officer email (`users.notifications.OfficerMonthly`) | `monthly_chapter_officer_email` (scheduled) | To, by `council_emails()` | Daily digest | `OfficerMonthly` |
 | E2 | Dues roster and reminder (`chapters.notifications.DuesReminder`) | Dues reminders | To, by `council_emails()` | Daily digest | `DuesReminder` |
-| E3 | Workflow updates with `email_officers=True` (`forms.notifications.EmailProcessUpdate`) in the forms flows, and the 14 and 30 day escalations of `remind_workflow_tasks` | Flow steps; scheduled reminders | CC, by `council_emails()` | Flow-step updates: daily digest. The 14 and 30 day escalations: CC as sent | `EmailProcessUpdate`, when `email_officers` is on |
+| E3 | Workflow updates with `email_officers=True` (`forms.notifications.EmailProcessUpdate`) in the forms flows, and the 14 and 30 day escalations of `remind_workflow_tasks` | Flow steps; scheduled reminders | CC, by `council_emails()` | Flow-step updates: daily digest. The 14 day escalation and the first 30 day (URGENT) one: CC as sent. Each later daily repeat of the URGENT one: one line in the daily digest | `EmailProcessUpdate`, when `email_officers` is on |
 | E4 | Award granted (`awards.notifications.grant_notification_recipients`) | An award is granted to a member or to the chapter | To, by `council_emails()` | Daily digest | The award-granted email in `awards/notifications.py` |
 | E5 | NME program revision request | A reviewer asks for changes | To, by `council_emails()` | Daily digest | The send in `forms/views.py` |
 | E6 | Bylaws update submitted | The chapter submits bylaws | To, by `council_emails()` | Daily digest | The send in `forms/views.py` |
@@ -1257,6 +1258,15 @@ Built 2026-10-22:
 - `Chapter.council_emails(include_support=False)` and `Chapter.support_specialist_emails()`;
   `update_shingle_contacts` passes `include_support=True` and now sorts the "Notify" list, so
   the sheet does not change order on every run.
+- *(Changed 2026-11-25, after CSSs got several "URGENT Disciplinary Process Pending Trial
+  Outcome Form" copies a day.)* `remind_workflow_tasks` sends its URGENT email every day from
+  day 30 until the form is done. Only the first one now CCs the CSSs (kind
+  `workflow_escalation`); each later one is kind `workflow_overdue`, which is not in the
+  default `CSS_REALTIME_EMAILS`. Its digest entry keeps a one-line summary (process, step,
+  who it waits on, since when) instead of the body, and the daily digest lists these once
+  each under "Still overdue" for the chapter. The monthly digest lists an email sent several
+  times once, with how many times it was sent. Adding `workflow_overdue` to
+  `CSS_REALTIME_EMAILS` brings back the daily CC.
 
 Done when:
 

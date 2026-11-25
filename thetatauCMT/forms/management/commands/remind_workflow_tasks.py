@@ -3,6 +3,7 @@ import datetime
 from django.conf import settings
 from django.core.management import BaseCommand
 from django.urls import reverse
+from django.utils import dateformat
 from viewflow.activation import STATUS
 from viewflow.models import Task
 
@@ -61,6 +62,8 @@ class Command(BaseCommand):
             state = "Pending Update"
             process_title = "Process Update"
             message = "Please update on process."
+            # Set on every URGENT day after the first, when the daily email repeats itself.
+            overdue_since = None
             if process.flow_class.process_title == "Disciplinary Process":
                 if function_task.flow_task.name == "submit_form2":
                     if process.trial_date <= date_30:
@@ -71,6 +74,8 @@ class Command(BaseCommand):
                         email_officers = True
                         extra_emails = {chapter.region.email}
                         extra = "<i>This email will continue to be sent daily until the form is submitted or someone contacts the central office with an update.</i>"
+                        if process.trial_date < date_30:
+                            overdue_since = process.trial_date
                     elif process.trial_date == date_7:
                         process_title = f"REMINDER {process.flow_class.process_title}"
                         extra_emails = {chapter.region.email}
@@ -121,6 +126,8 @@ class Command(BaseCommand):
                     email_officers = True
                     extra_emails = {chapter.region.email}
                     extra = "<i>This email will continue to be sent daily until the form is submitted or someone contacts the central office with an update.</i>"
+                    if created < date_30:
+                        overdue_since = created
                 elif created == date_14:
                     process_title = f"REMINDER {process.flow_class.process_title}"
                     days = 14
@@ -166,6 +173,8 @@ class Command(BaseCommand):
                     email_officers = True
                     extra_emails = {chapter.region.email}
                     extra = "<i>This email will continue to be sent daily until the form is submitted or someone contacts the central office with an update.</i>"
+                    if created < date_30:
+                        overdue_since = created
                 elif created == date_14:
                     process_title = f"REMINDER {process.flow_class.process_title}"
                     days = 14
@@ -205,6 +214,8 @@ class Command(BaseCommand):
                     email_officers = True
                     extra_emails = {chapter.region.email}
                     extra = "<i>This email will continue to be sent daily until the form is submitted or someone contacts the central office with an update.</i>"
+                    if created < date_30:
+                        overdue_since = created
                 elif created == date_14:
                     process_title = f"REMINDER {process.flow_class.process_title}"
                     days = 14
@@ -247,6 +258,13 @@ class Command(BaseCommand):
             self.stdout.write(
                 f"Send update for: {days} {process} for {owner} at {chapter} created {created} {function_task.status}"
             )
+            # The 14 day and first 30 day escalations copy the officers; their CSSs get them at once.
+            support_kind = SupportDigestEntry.Kind.WORKFLOW_ESCALATION if email_officers else None
+            support_summary = ""
+            if overdue_since:
+                support_kind = SupportDigestEntry.Kind.WORKFLOW_OVERDUE
+                since = dateformat.format(overdue_since, "M j, Y")
+                support_summary = f"{process}: {state}, waiting on {owner} since {since}"
             EmailProcessUpdate(
                 process,
                 complete_step=complete_step,
@@ -259,8 +277,8 @@ class Command(BaseCommand):
                 email_officers=email_officers,
                 attachments=attachments,
                 extra_emails=extra_emails,
-                # The 14 and 30 day escalations copy the officers; their CSSs get them at once.
-                support_kind=SupportDigestEntry.Kind.WORKFLOW_ESCALATION if email_officers else None,
+                support_kind=support_kind,
+                support_summary=support_summary,
             ).send()
         if cancelled:
             message = "The following processes were cancelled after over " "60 days of no update:<ul>"
